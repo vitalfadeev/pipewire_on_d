@@ -1,0 +1,13 @@
+{
+	"name"             : "system_volume_pipewire",
+	"authors"          : ["vf"],
+	"description"      : "A minimal D application.",
+	"license"          : "proprietary",
+	"dflags"           : [ "-mixin=mixins.d" ],
+	"dflags-linux-dmd" : ["-P-Ideps/pw/include"],
+	"dflags-linux-ldc" : ["-P-Ideps/pw/include"],
+	"importPaths-gdc"  : ["deps/pw/include"],
+	"lflags"           : ["-Ldeps/pw/lib"],
+	"libs"             : ["tutorial", "pipewire-0.3"],
+	"preBuildCommands" : ["./pre-build.sh"]
+}

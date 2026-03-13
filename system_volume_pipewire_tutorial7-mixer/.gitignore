@@ -1,0 +1,16 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/system_volume_pipewire
+system_volume_pipewire.so
+system_volume_pipewire.dylib
+system_volume_pipewire.dll
+system_volume_pipewire.a
+system_volume_pipewire.lib
+system_volume_pipewire-test-*
+*.exe
+*.pdb
+*.o
+*.obj
+*.lst
