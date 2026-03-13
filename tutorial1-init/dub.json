@@ -1,5 +1,5 @@
 {
-	"name"             : "system_volume_pipewire",
+	"name"             : "pipewire_d_cimport",
 	"authors"          : ["vf"],
 	"description"      : "A minimal D application.",
 	"license"          : "proprietary",
