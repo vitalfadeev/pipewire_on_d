@@ -34,4 +34,47 @@ int main (int argc, char** argv) {
 //         uint32_t    max,
 //         const struct spa_pod *  filter )
 //
+
+// Core
+//   methods
+//     add_listener
+//     hello
+//     sync
+//     pong
+//     error
+//     get_registry
+//     create_object   //////////////////////////
+//     destroy 
+//   events
+//     info
+//     done
+//     ping
+//     error
+//
+// Registry
+//   methods
+//   events
+//
+// Client
+//   PW_TYPE_INTERFACE_Client
+//   events
+//     info
+//   methods
+//         ...
+//
+// Device
+//   methods
+//     add_listener 
+//     subscribe_params /////////////////////////////
+//     enum_params 
+//     set_param 
+//   events
+//      info
+//      params
+//
+// Module
+//   methods
+//     add_listener 
+//   events
+//      info
 //

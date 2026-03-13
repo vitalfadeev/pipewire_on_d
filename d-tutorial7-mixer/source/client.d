@@ -1,5 +1,6 @@
 import importc;
 import ctx;
+import interfaces;
 
 class
 Client {
@@ -41,13 +42,6 @@ Client {
         info: &client_info,
     };
 }
-
-enum PW_TYPE_INFO_BASE           = "PipeWire:";
-enum PW_TYPE_INFO_Object         = PW_TYPE_INFO_BASE ~ "Object";
-enum PW_TYPE_INFO_OBJECT_BASE    = PW_TYPE_INFO_Object ~ ":";
-enum PW_TYPE_INFO_Interface      = PW_TYPE_INFO_BASE ~ "Interface";
-enum PW_TYPE_INFO_INTERFACE_BASE = PW_TYPE_INFO_Interface ~ ":";
-enum PW_TYPE_INTERFACE_Client    = PW_TYPE_INFO_INTERFACE_BASE ~ "Client";
 
 
 auto removeConst (T) (T value) {

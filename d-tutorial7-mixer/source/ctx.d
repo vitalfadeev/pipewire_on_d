@@ -3,6 +3,9 @@ import context;
 import core_;
 import registry;
 import client;
+import device;
+import module_;
+import node;
 
 class
 Ctx {
@@ -11,6 +14,9 @@ Ctx {
     Core_         core;
     Registry      registry;
     Client        client;
+    Device        device;
+    Module_       module_;
+    Node          node;
 
     this () {
         loop     = pw_main_loop_new (null /* properties */ );
