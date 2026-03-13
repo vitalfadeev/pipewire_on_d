@@ -18,13 +18,8 @@ Client {
     }
 
     ~this () {
-        //pw_proxy_destroy (cast (pw_proxy *) _this);        
+        pw_proxy_destroy (cast (pw_proxy *) _this);        
     }
-
-    //bool
-    //opCast (T : bool) () {
-    //    return (_this !is null);
-    //}
 
     extern (C)
     static void 

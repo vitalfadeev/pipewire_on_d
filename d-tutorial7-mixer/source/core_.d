@@ -23,6 +23,6 @@ Core_ {
     }
 
     ~this () {
-        //pw_core_disconnect (_this);
+        pw_core_disconnect (_this);
     }
 }

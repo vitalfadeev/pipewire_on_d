@@ -9,10 +9,11 @@ Registry {
 
     this (pw_registry* _this, Ctx ctx) {
         this._this = _this;
+        add_listener (ctx);
     }
 
     ~this () {
-        //pw_proxy_destroy (cast (pw_proxy *) _this);        
+        pw_proxy_destroy (cast (pw_proxy *) _this);        
     }
 
     Client

@@ -14,7 +14,7 @@ Context {
     }
 
     ~this () {
-        //pw_context_destroy (_this);
+        pw_context_destroy (_this);
     }
 
     Core_

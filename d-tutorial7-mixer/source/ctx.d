@@ -17,7 +17,6 @@ Ctx {
         context  = new Context (loop);
         core     = context.connect ();
         registry = core.get_registry (this);
-        registry.add_listener (this);
     }
 
     void
@@ -26,7 +25,7 @@ Ctx {
     }
 
     ~this () {
-        //pw_main_loop_destroy (loop);
+        pw_main_loop_destroy (loop);
     }
 }
 
