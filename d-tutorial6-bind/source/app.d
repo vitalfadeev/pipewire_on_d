@@ -1,23 +1,11 @@
 import importc;
 
-import std.traits;
-
-
 enum PW_TYPE_INFO_BASE           = "PipeWire:";
 enum PW_TYPE_INFO_Object         = PW_TYPE_INFO_BASE ~ "Object";
 enum PW_TYPE_INFO_OBJECT_BASE    = PW_TYPE_INFO_Object ~ ":";
 enum PW_TYPE_INFO_Interface      = PW_TYPE_INFO_BASE ~ "Interface";
 enum PW_TYPE_INFO_INTERFACE_BASE = PW_TYPE_INFO_Interface ~ ":";
 enum PW_TYPE_INTERFACE_Client    = PW_TYPE_INFO_INTERFACE_BASE ~ "Client";
-
-
-auto removeConst(T)(T value) {
-    static if (is(T == const U, U)) {
-        return cast(U) value;
-    } else {
-        return value;
-    }
-}
 
 
 struct 
@@ -32,6 +20,14 @@ Ctx {
     pw_client*    client;
     spa_hook      client_listener;
 };
+
+auto removeConst (T) (T value) {
+    static if (is (T == const U, U)) {
+        return cast (U) value;
+    } else {
+        return value;
+    }
+}
 
 auto
 spa_dict_for_each (DICT) (DICT dict) {

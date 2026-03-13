@@ -1,0 +1,21 @@
+{
+	"name"             : "pipewire_d",
+	"authors"          : ["vf"],
+	"description"      : "A minimal D application.",
+	"license"          : "proprietary",
+	"dflags"           : [ "-mixin=mixins.d" ],
+	"dflags-linux-dmd" : [
+		"-P-I/usr/include/pipewire-0.3",
+		"-P-I/usr/include/spa-0.2"
+	],
+	"dflags-linux-ldc" : [
+		"-P-I/usr/include/pipewire-0.3",
+		"-P-I/usr/include/spa-0.2"
+	],
+	"importPaths-gdc"  : [
+		"/usr/include/pipewire-0.3",
+		"/usr/include/spa-0.2"
+	],
+	"libs"             : ["pipewire-0.3"],
+
+}
