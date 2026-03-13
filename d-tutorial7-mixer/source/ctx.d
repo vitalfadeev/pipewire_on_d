@@ -6,6 +6,7 @@ import client;
 import device;
 import module_;
 import node;
+import factory;
 
 class
 Ctx {
@@ -17,6 +18,7 @@ Ctx {
     Device        device;
     Module_       module_;
     Node          node;
+    Factory       factory;
 
     this () {
         loop     = pw_main_loop_new (null /* properties */ );

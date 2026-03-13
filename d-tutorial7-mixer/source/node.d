@@ -45,7 +45,7 @@ Node {
 
     static 
     pw_node_events node_events = {
-        PW_VERSION_CLIENT_EVENTS,
+        PW_VERSION_NODE_EVENTS,
         info: &node_info,
     };
 }

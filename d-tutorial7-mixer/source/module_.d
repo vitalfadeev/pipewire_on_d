@@ -38,7 +38,7 @@ Module_ {
 
     static 
     pw_module_events module_events = {
-        PW_VERSION_CLIENT_EVENTS,
+        PW_VERSION_MODULE_EVENTS,
         info: &module_info,
     };
 }

@@ -5,6 +5,7 @@ import interfaces;
 import device;
 import module_;
 import node;
+import factory;
 
 class
 Registry {
@@ -84,6 +85,22 @@ Registry {
         );
     }
 
+    Factory
+    bind_factory (Ctx ctx, uint32_t id_, const char* type) {
+        with (ctx)
+        return new Factory (
+            cast (pw_factory*)
+            pw_registry_bind (
+                _this, 
+                id_, 
+                type, 
+                PW_VERSION_FACTORY, 
+                0
+            ),
+            ctx
+        );
+    }
+
     extern (C)
     static 
     void 
@@ -117,6 +134,11 @@ Registry {
         if (strcmp (type, PW_TYPE_INTERFACE_Node) == 0) {
             with (cast (Ctx) ctx)
             node = registry.bind_node (cast (Ctx) ctx, id_, type);
+        }
+        // Factory
+        if (strcmp (type, PW_TYPE_INTERFACE_Factory) == 0) {
+            with (cast (Ctx) ctx)
+            factory = registry.bind_factory (cast (Ctx) ctx, id_, type);
         }
     }
 

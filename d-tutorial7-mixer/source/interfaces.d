@@ -7,3 +7,5 @@ enum PW_TYPE_INTERFACE_Client    = PW_TYPE_INFO_INTERFACE_BASE ~ "Client";
 enum PW_TYPE_INTERFACE_Device    = PW_TYPE_INFO_INTERFACE_BASE ~ "Device";
 enum PW_TYPE_INTERFACE_Module    = PW_TYPE_INFO_INTERFACE_BASE ~ "Module";  // PipeWire:Interface:Module
 enum PW_TYPE_INTERFACE_Node      = PW_TYPE_INFO_INTERFACE_BASE ~ "Node";
+enum PW_TYPE_INTERFACE_Factory   = PW_TYPE_INFO_INTERFACE_BASE ~ "Factory";
+enum PW_TYPE_INTERFACE_Metadata  = PW_TYPE_INFO_INTERFACE_BASE ~ "Metadata";
