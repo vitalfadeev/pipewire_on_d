@@ -6,16 +6,24 @@
 	"dflags"           : [ "-mixin=mixins.d" ],
 	"dflags-linux-dmd" : [
 		"-P-I/usr/include/pipewire-0.3",
-		"-P-I/usr/include/spa-0.2"
+		"-P-I/usr/include/spa-0.2",
+		"-P-Ideps/spa_wrapper/include"
 	],
 	"dflags-linux-ldc" : [
 		"-P-I/usr/include/pipewire-0.3",
-		"-P-I/usr/include/spa-0.2"
+		"-P-I/usr/include/spa-0.2",
+		"-P-I./deps/spa_wrapper/include",
 	],
 	"importPaths-gdc"  : [
 		"/usr/include/pipewire-0.3",
-		"/usr/include/spa-0.2"
+		"/usr/include/spa-0.2",
+		"deps/spa_wrapper/include"
+	],
+	"lflags-ldc"       : [
+		"-L/usr/lib/x86_64-linux-gnu/spa-0.2",
+		"-L./deps/spa_wrapper/lib", "-lspa_wrapper",
 	],
 	"libs"             : ["pipewire-0.3"],
-
+	"preBuildCommands" : ["./pre-build.sh"],
 }
+

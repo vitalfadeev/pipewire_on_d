@@ -1,5 +1,5 @@
 import importc;
-import ctx;
+import core_;
 import interfaces;
 import std.stdio : writeln;
 import std.stdio : writefln;
@@ -7,16 +7,18 @@ import std.stdio : writefln;
 class
 Factory {
     pw_factory* _this;
-    spa_hook    factory_listener;
+    Core_        core_;
+    spa_hook     factory_listener;
 
-    this (pw_factory* _this, Ctx ctx) {
-        this._this = _this;
+    this (void* _this, Core_ core_) {
+        this._this = cast (pw_factory*) _this;
+        this.core_ = core_;
 
         pw_factory_add_listener (
-            _this,
+            this._this,
             &factory_listener,
             &factory_events, 
-            cast (void*) ctx
+            cast (void*) this
         );        
     }
 
@@ -26,13 +28,13 @@ Factory {
 
     extern (C)
     static void 
-    factory_info (void *ctx, const pw_factory_info *info)
+    factory_info (void* data, const pw_factory_info *info)
     {
-        printf ("factory: id:%u\n", info.id);
-        printf ("\ttype: :%s\n", info.type);
+        //printf ("factory: id:%u\n", info.id);
+        //printf ("\ttype: :%s\n", info.type);
 
-        with (cast (Ctx) ctx)
-        pw_main_loop_quit (loop);
+        //with (cast (Ctx) ctx)
+        //pw_main_loop_quit (loop);
     }
 
     static 

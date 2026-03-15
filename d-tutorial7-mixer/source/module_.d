@@ -1,5 +1,7 @@
+module module_;
+
 import importc;
-import ctx;
+import core_;
 import interfaces;
 import std.stdio : writeln;
 import std.stdio : writefln;
@@ -7,16 +9,18 @@ import std.stdio : writefln;
 class
 Module_ {
     pw_module* _this;
-    spa_hook   module_listener;
+    Core_       core_;
+    spa_hook    module_listener;
 
-    this (pw_module* _this, Ctx ctx) {
-        this._this = _this;
+    this (void* _this, Core_ core_) {
+        this._this = cast (pw_module*) _this;
+        this.core_ = core_;
 
         pw_module_add_listener (
-            _this,
+            this._this,
             &module_listener,
             &module_events, 
-            cast (void*) ctx
+            cast (void*) this
         );        
     }
 
@@ -26,14 +30,14 @@ Module_ {
 
     extern (C)
     static void 
-    module_info (void *ctx, const pw_module_info *info)
+    module_info (void* data, const pw_module_info *info)
     {
-        printf ("module: id:%u\n", info.id);
-        printf ("\tilename: %s\n", info.filename);
+        //printf ("module: id:%u\n", info.id);
+        //printf ("\tilename: %s\n", info.filename);
 
 
-        with (cast (Ctx) ctx)
-        pw_main_loop_quit (loop);
+        //with (cast (Ctx) ctx)
+        //pw_main_loop_quit (loop);
     }
 
     static 

@@ -1,5 +1,7 @@
 import importc;
 import ctx;
+import context;
+import std.stdio : writeln;
 
 
 
@@ -8,7 +10,29 @@ int main (int argc, char** argv) {
     pw_init (&argc, &argv);
 
     auto ctx = new Ctx ();
-    ctx.run ();
+    with (ctx) {
+        context = new Context ();
+
+        // connect
+        // wait connect
+        core = context.connect ();
+        //context.main_loop_run ();
+        core.roundtrip ();
+
+        // registry
+        // wait registry
+        registry = core.get_registry ();
+        core.roundtrip ();
+
+        //
+        //main_loop_run ();
+    }
+
+    // print nodex
+    writeln ("Nodes: ", ctx.registry.nodes.length);
+    foreach (node; ctx.registry.nodes) {
+        writeln ("  ", node.info.id, " ", node.info.n_params);
+    }
 
     return 0;
 }
