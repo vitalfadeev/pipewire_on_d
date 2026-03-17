@@ -223,6 +223,11 @@ _SPA_POD_PROP_SIZE (spa_pod_prop* prop) {
     return spa_pod_prop.sizeof + prop.value.size;
 }
 
+auto
+_SPA_POD_Params2_SIZE (Params2* prop) {
+    return spa_pod_prop.sizeof + prop.value.size;
+}
+
 auto 
 SPA_ROUND_MASK (ulong num, uint mask) {
     return mask - 1;
@@ -272,12 +277,20 @@ dump_pod_object (spa_pod* param) {
             if (_prop.key == SPA_PROP_params) {
                 // key, value   // string: pod
                 if (_prop.value.type == SPA_TYPE_Struct) {
-                    // _prop.value.size
-                    // _prop.value.type
+                    // _prop.value
+                    // spa_pod
+                    //   size
+                    //   type
+                    //   __content  // Params2
                     auto _prop2 = cast (Params2*) ((&_prop.value) + 1);
-                    printf ("        %d\n", _prop2.key.pod.size);
-                    printf ("        %d\n", _prop2.key.pod.type);
-                  writefln ("        %s", cast (spa_type) _prop2.key.pod.type);
+                    // foreach...
+                    for (; 
+                        (cast (void*)_prop2) < ((cast (void*) (&_prop.value)) + _prop.value.size);
+                        _prop2 = cast (Params2*) ((cast (void*)_prop2) + _SPA_ROUND_UP_N (_SPA_POD_Params2_SIZE (_prop2), 8)))
+                    {
+                      writefln ("        %s", cast (spa_type) _prop2.key.pod.type);
+                        printf ("        %s", cast (char *) ((&_prop2.key.pod)+1) );
+                    }
                 }
             }
         }
