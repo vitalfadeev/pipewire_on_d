@@ -5,6 +5,7 @@ import std.stdio : writeln;
 import std.stdio : writefln;
 import std.conv : to;
 import std.string : fromStringz;
+import spa;
 
 class
 Node {
@@ -146,101 +147,23 @@ Node {
                     const bool _params;
                     const spa_pod_struct* labels;
                     const spa_pod_choice* ctype;
-                    import spa;
 
-                    //with (spa_prop_info)
-                    //if (spa_pod_parse_object (param,
-                    //    SPA_TYPE_Object, &id,
-                    //    SPA_PROP_volume,            SPA_POD_Float(&volume),
-                    //    SPA_PROP_mute,              SPA_POD_Bool(&mute),
-                    //    SPA_PROP_channelVolumes,    SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumes, volumes.ptr),
-                    //    SPA_PROP_monitorVolumes,    SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumesm, volumesm.ptr),
-                    //    SPA_PROP_softVolumes,       SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumess, volumess.ptr),
-                    //    SPA_PROP_gain,              SPA_POD_Float(&gain),
-                    //) < 0)
-                    //    printf ("  -EINVAL\n");
-                    spa_pod_object* obj = cast (spa_pod_object*) param;
-                    printf ("    obj body size %d\n", obj.pod.size);
-                    printf ("    obj body type %d\n", obj.pod.type);
-                    writefln ("    obj body type %s", cast (spa_type) obj.pod.type);
+                    if (spa_pod_parse_object (param,
+                        SPA_TYPE_OBJECT_Props, null,
+                        SPA_PROP_volume,            SPA_POD_Float(&volume),
+                        //SPA_PROP_mute,              SPA_POD_Bool(&mute),
+                        SPA_PROP_channelVolumes,    SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumes, volumes.ptr),
+                        //SPA_PROP_monitorVolumes,    SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumesm, volumesm.ptr),
+                        //SPA_PROP_softVolumes,       SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumess, volumess.ptr),
+                    ) < 0)
+                        printf ("    -EINVAL\n");
 
-                    // spa_pod_object
-                    // obj
-                    //   pod                // spa_pod
-                    //     size             //   uint32_t
-                    //     type             //   uint32_t  spa_type  SPA_TYPE_*
-                    //   body               // spa_pod_object_body
-                    //     type             //   uint32_t  spa_type  SPA_TYPE_*
-                    //     id               //   uint32_t
-                    //     spa_pod_prop[] __array
-                    //       [0] key        //     uint32_t  spa_prop  SPA_PROP_*
-                    //       [0] flags      //     uint32_t
-                    //       [0] value      //     spa_pod
-                    //           ubyte[]  __value
-                    //
-                    // SPA_TYPE_Object
-                    //   SPA_TYPE_OBJECT_Props
-                    //
-                    // SPA_TYPE_*
-                    //   SPA_TYPE_OBJECT_*
-                    if (obj.pod.type == SPA_TYPE_Object) {
-                        auto _prop = cast (spa_pod_prop*) ((cast (void*) &obj.body) + obj.body.sizeof);  // &body + body.sizeof
-                        for (; 
-                            (cast (void*)_prop) < ((cast (void*) &obj.body) + obj.pod.size);
-                            _prop = cast (spa_pod_prop*) ((cast (void*)_prop) + _SPA_ROUND_UP_N (_SPA_POD_PROP_SIZE (_prop), 8)))
-                        {
-                            writefln ("      %s", cast (spa_prop) _prop.key);
-                            writefln ("      %s", cast (spa_type) _prop.value.type);
-                        }
-                    }
+                    printf ("    volume %f\n", volume);
+                    printf ("    channelVolumes %d\n", n_volumes);
 
-                    //
-                    if (obj.body.type == SPA_TYPE_OBJECT_Props) {
-                        // SPA_TYPE_OBJECT_Props
-                        // SPA_PROP_volume
-                        //spa_pod* obj_body_params;
-                        //spa_pod_parse_object (&obj.body, SPA_TYPE_OBJECT_Props, null, 
-                        //        SPA_PROP_params,SPA_POD_OPT_Pod (&obj_body_params));
-
-                        with (spa_prop_info)
-                        if (spa_pod_parse_object (&obj.pod,
-                            SPA_TYPE_OBJECT_Props, null,
-                            SPA_PROP_volume,            SPA_POD_Float(&volume),
-                            SPA_PROP_mute,              SPA_POD_Bool(&mute),
-                            SPA_PROP_channelVolumes,    SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumes, volumes.ptr),
-                            SPA_PROP_monitorVolumes,    SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumesm, volumesm.ptr),
-                            SPA_PROP_softVolumes,       SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumess, volumess.ptr),
-                            SPA_PROP_gain,              SPA_POD_Float(&gain),
-                        ) < 0)
-                            printf ("  -EINVAL\n");
-                        printf ("    volume,mute: %f, %d\n", volume, mute);
-                        printf ("    volumes_n: %d\n", n_volumes);
-                        printf ("    mvolumes_n: %d\n", n_volumesm);
-                        printf ("    svolumes_n: %d\n", n_volumess);
-                        printf ("    gain: %f\n", gain);
-                        // obj.body
-                        //   type
-                        //   id
-                        //   spa_pod_prop[]
-                        //     uint32_t key
-                        //     uint32_t flags
-                        //     spa_pod  value
-                        auto __props = cast (spa_pod_prop*) (&obj.body.id + 1);
-                        printf ("    key: %d\n", __props.key);
-                        writefln ("    key: %s", cast (spa_type) __props.key);
-                        //if (__props.flags & SPA_POD_PROP_FLAG_HINT_DICT)
-                        //    writeln ("    SPA_POD_PROP_FLAG_HINT_DICT");
-                        writefln ("    flags: %x", __props.flags);
-                        writefln ("    __props.pod.size: %s", __props.value.size);
-                        writefln ("    __props.pod.type: %s", cast (spa_type) __props.value.type);
-                        if (__props.value.type == SPA_TYPE_String) {
-                            //spa_pod_string
-                            auto _spa_pod_string = cast (spa_pod_string*) (&__props.value);
-                            auto _string = cast (char*) (_spa_pod_string + 1);
-                            printf ("    _string: %s\n", _string);
-                        }
-                    }
+                    dump_pod_object (param);
                     break;
+
                 case SPA_PARAM_Tag:
                     break;
                 default:
@@ -308,4 +231,61 @@ SPA_ROUND_MASK (ulong num, uint mask) {
 auto
 _SPA_ROUND_UP_N (ulong num, uint _align) {
     return ((num-1) | SPA_ROUND_MASK (num, _align)) + 1;
+}
+
+void
+dump_pod_object (spa_pod* param) {
+    // spa_pod_object
+    // obj
+    //   pod                // spa_pod
+    //     size             //   uint32_t
+    //     type             //   uint32_t  spa_type  SPA_TYPE_*
+    //   body               // spa_pod_object_body
+    //     type             //   uint32_t  spa_type  SPA_TYPE_*
+    //     id               //   uint32_t
+    //     spa_pod_prop[] __array
+    //       [0] key        //     uint32_t  spa_prop  SPA_PROP_*
+    //       [0] flags      //     uint32_t
+    //       [0] value      //     spa_pod
+    //           ubyte[]  __value
+    //
+    // SPA_TYPE_Object
+    //   SPA_TYPE_OBJECT_Props
+    //
+    // SPA_TYPE_*
+    //   SPA_TYPE_OBJECT_*
+
+    spa_pod_object* obj = cast (spa_pod_object*) param;
+    printf ("    obj body size %d\n", obj.pod.size);
+    writefln ("    obj body type %s", cast (spa_type) obj.pod.type);
+
+    if (obj.pod.type == SPA_TYPE_Object) {
+        auto _prop = cast (spa_pod_prop*) ((cast (void*) &obj.body) + obj.body.sizeof);  // &body + body.sizeof
+        for (; 
+            (cast (void*)_prop) < ((cast (void*) &obj.body) + obj.pod.size);
+            _prop = cast (spa_pod_prop*) ((cast (void*)_prop) + _SPA_ROUND_UP_N (_SPA_POD_PROP_SIZE (_prop), 8)))
+        {
+            writefln ("      %s: %s", 
+                cast (spa_prop) _prop.key,
+                cast (spa_type) _prop.value.type);
+
+            if (_prop.key == SPA_PROP_params) {
+                // key, value   // string: pod
+                if (_prop.value.type == SPA_TYPE_Struct) {
+                    // _prop.value.size
+                    // _prop.value.type
+                    auto _prop2 = cast (Params2*) ((&_prop.value) + 1);
+                    printf ("        %d\n", _prop2.key.pod.size);
+                    printf ("        %d\n", _prop2.key.pod.type);
+                  writefln ("        %s", cast (spa_type) _prop2.key.pod.type);
+                }
+            }
+        }
+    }
+}
+
+struct
+Params2 {
+    spa_pod_string key;
+    spa_pod        value;
 }
