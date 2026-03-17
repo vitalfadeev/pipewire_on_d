@@ -220,18 +220,28 @@ Pod {
         return spa_pod_is_inside (_this, _this.size, pod._this);
     }
 
-    string
-    as_string () {
+    void
+    dump (string prefix="") {
         switch (_this.type) with (spa_type) {
-            case SPA_TYPE_Bool   : return (cast (spa_pod_bool*)   _this).value ? "true" : "false";
-            case SPA_TYPE_Id     : return (cast (spa_pod_id*)     _this).value.to!string;
-            case SPA_TYPE_Int    : return (cast (spa_pod_int *)   _this).value.to!string;
-            case SPA_TYPE_Long   : return (cast (spa_pod_long *)  _this).value.to!string;
-            case SPA_TYPE_Float  : return (cast (spa_pod_float*)  _this).value.to!string;
-            case SPA_TYPE_Double : return (cast (spa_pod_double*) _this).value.to!string;
-            case SPA_TYPE_String : return fromStringz (cast (char*) SPA_POD_BODY (cast (spa_pod*) _this)).to!string;
-            case SPA_TYPE_Bytes  : return fromStringz (cast (char*) SPA_POD_BODY (cast (spa_pod*) _this)).to!string;
-            default              : return "?";
+            case SPA_TYPE_Bool   : writefln ("%s%d", prefix, (cast (spa_pod_bool*)   _this).value); break;
+            case SPA_TYPE_Id     : writefln ("%s%d", prefix, (cast (spa_pod_id*)     _this).value); break;
+            case SPA_TYPE_Int    : writefln ("%s%d", prefix, (cast (spa_pod_int *)   _this).value); break;
+            case SPA_TYPE_Long   : writefln ("%s%d", prefix, (cast (spa_pod_long *)  _this).value); break;
+            case SPA_TYPE_Float  : writefln ("%s%f", prefix, (cast (spa_pod_float*)  _this).value); break;
+            case SPA_TYPE_Double : writefln ("%s%f", prefix, (cast (spa_pod_double*) _this).value); break;
+            case SPA_TYPE_String : writefln ("%s%s", prefix, fromStringz (cast (char*) SPA_POD_BODY (cast (spa_pod*) _this)).to!string); break;
+            case SPA_TYPE_Object : 
+                foreach (Prop prop; Pod_object_foreach (_this)) {
+                    writefln ("%s%s: %s", prefix, prop.key, prop.value_type);
+                    Pod (prop.value).dump (prefix~" ");
+                }
+                break;
+            case SPA_TYPE_Struct : 
+                foreach (Pod _param; Pod_struct_foreach (_this)) {
+                    _param.dump (prefix~" ");
+                }
+                break;
+            default              : writefln ("%s?", prefix);
         }
     }
 }

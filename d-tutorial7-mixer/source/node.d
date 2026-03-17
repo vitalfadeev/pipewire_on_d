@@ -240,17 +240,16 @@ dump_pod_object (spa_pod* param) {
     //
     // SPA_TYPE_*
     //   SPA_TYPE_OBJECT_*
+    Pod (param).dump ("  ");
 
-    if (param.type == SPA_TYPE_Object)
-    foreach (prop; Pod_object_foreach (param)) {
-        writefln ("      %s: %s", prop.key, prop.value_type);
+    //if (param.type == SPA_TYPE_Object)
+    //foreach (Prop prop; Pod_object_foreach (param)) {
+    //    writefln ("      %s: %s", prop.key, prop.value_type);
 
-        if (prop.key == SPA_PROP_params)
-        if (prop.value.type == SPA_TYPE_Struct)
-        foreach (_param; Pod_struct_foreach (prop.value)) {
-              //writefln ("        %d", _param.size);
-              //writefln ("        %s", cast (spa_type)  _param.type);
-              writefln ("        %s", _param.as_string);
-        }
-    }
+    //    if (prop.key == SPA_PROP_params)
+    //    if (prop.value.type == SPA_TYPE_Struct)
+    //    foreach (Pod _param; Pod_struct_foreach (prop.value)) {
+    //          writefln ("        %s", _param.as_string);
+    //    }
+    //}
 }
