@@ -151,15 +151,16 @@ Node {
                     if (spa_pod_parse_object (param,
                         SPA_TYPE_OBJECT_Props, null,
                         SPA_PROP_volume,            SPA_POD_Float(&volume),
-                        //SPA_PROP_mute,              SPA_POD_Bool(&mute),
-                        SPA_PROP_channelVolumes,    SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumes, volumes.ptr),
+                        SPA_PROP_mute,              SPA_POD_Bool(&mute),
+                        //SPA_PROP_channelVolumes,    SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumes, volumes.ptr),
                         //SPA_PROP_monitorVolumes,    SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumesm, volumesm.ptr),
                         //SPA_PROP_softVolumes,       SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumess, volumess.ptr),
                     ) < 0)
                         printf ("    -EINVAL\n");
 
                     printf ("    volume %f\n", volume);
-                    printf ("    channelVolumes %d\n", n_volumes);
+                    printf ("    mute %d\n", mute);
+                    //printf ("    channelVolumes %d\n", n_volumes);
 
                     dump_pod_object (param);
                     break;
@@ -289,7 +290,7 @@ dump_pod_object (spa_pod* param) {
                         _prop2 = cast (Params2*) ((cast (void*)_prop2) + _SPA_ROUND_UP_N (_SPA_POD_Params2_SIZE (_prop2), 8)))
                     {
                       writefln ("        %s", cast (spa_type) _prop2.key.pod.type);
-                        printf ("        %s", cast (char *) ((&_prop2.key.pod)+1) );
+                        printf ("        %s\n", cast (char *) ((&_prop2.key.pod)+1) );
                     }
                 }
             }
