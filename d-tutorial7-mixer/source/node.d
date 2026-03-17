@@ -219,26 +219,6 @@ Node {
 //    }
 //}
 
-auto
-_SPA_POD_PROP_SIZE (spa_pod_prop* prop) {
-    return spa_pod_prop.sizeof + prop.value.size;
-}
-
-auto
-_SPA_POD_Params2_SIZE (Params2* prop) {
-    return spa_pod_prop.sizeof + prop.value.size;
-}
-
-auto 
-SPA_ROUND_MASK (ulong num, uint mask) {
-    return mask - 1;
-}
-
-auto
-_SPA_ROUND_UP_N (ulong num, uint _align) {
-    return ((num-1) | SPA_ROUND_MASK (num, _align)) + 1;
-}
-
 void
 dump_pod_object (spa_pod* param) {
     // spa_pod_object
@@ -261,45 +241,16 @@ dump_pod_object (spa_pod* param) {
     // SPA_TYPE_*
     //   SPA_TYPE_OBJECT_*
 
-    spa_pod_object* obj = cast (spa_pod_object*) param;
-    printf ("    obj body size %d\n", obj.pod.size);
-    writefln ("    obj body type %s", cast (spa_type) obj.pod.type);
+    if (param.type == SPA_TYPE_Object)
+    foreach (prop; Pod_object_foreach (param)) {
+        writefln ("      %s: %s", prop.key, prop.value_type);
 
-    if (obj.pod.type == SPA_TYPE_Object) {
-        auto _prop = cast (spa_pod_prop*) ((cast (void*) &obj.body) + obj.body.sizeof);  // &body + body.sizeof
-        for (; 
-            (cast (void*)_prop) < ((cast (void*) &obj.body) + obj.pod.size);
-            _prop = cast (spa_pod_prop*) ((cast (void*)_prop) + _SPA_ROUND_UP_N (_SPA_POD_PROP_SIZE (_prop), 8)))
-        {
-            writefln ("      %s: %s", 
-                cast (spa_prop) _prop.key,
-                cast (spa_type) _prop.value.type);
-
-            if (_prop.key == SPA_PROP_params) {
-                // key, value   // string: pod
-                if (_prop.value.type == SPA_TYPE_Struct) {
-                    // _prop.value
-                    // spa_pod
-                    //   size
-                    //   type
-                    //   __content  // Params2
-                    auto _prop2 = cast (Params2*) ((&_prop.value) + 1);
-                    // foreach...
-                    for (; 
-                        (cast (void*)_prop2) < ((cast (void*) (&_prop.value)) + _prop.value.size);
-                        _prop2 = cast (Params2*) ((cast (void*)_prop2) + _SPA_ROUND_UP_N (_SPA_POD_Params2_SIZE (_prop2), 8)))
-                    {
-                      writefln ("        %s", cast (spa_type) _prop2.key.pod.type);
-                        printf ("        %s\n", cast (char *) ((&_prop2.key.pod)+1) );
-                    }
-                }
-            }
+        if (prop.key == SPA_PROP_params)
+        if (prop.value.type == SPA_TYPE_Struct)
+        foreach (_param; Pod_struct_foreach (prop.value)) {
+              //writefln ("        %d", _param.size);
+              //writefln ("        %s", cast (spa_type)  _param.type);
+              writefln ("        %s", _param.as_string);
         }
     }
-}
-
-struct
-Params2 {
-    spa_pod_string key;
-    spa_pod        value;
 }

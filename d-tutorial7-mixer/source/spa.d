@@ -6,6 +6,8 @@ import std.stdio : writeln;
 import std.stdio : writefln;
 import core.stdc.stdarg;
 import spa_list;
+import std.conv : to;
+import std.string : fromStringz;
 
 
 auto
@@ -169,3 +171,123 @@ spa_type {
 };
 
 enum SPA_POD_PROP_FLAG_HINT_DICT = (1u<<2);
+
+
+// Node
+//   props
+struct
+Pod_object_foreach {
+    Prop front;
+    bool empty ()    { return !obj.is_inside (front); }
+    void popFront () { front = front.next (); }
+    Pod_object obj;
+
+    this (spa_pod_object* obj) {  // pod*
+        this.obj   = Pod_object (obj);
+        this.front = this.obj.prop_first ();
+    }
+
+    this (spa_pod* pod) {
+        this (cast (spa_pod_object*) pod);
+    }
+}
+
+struct
+Pod_struct_foreach {
+    Pod  front;
+    bool empty ()    { return !pod_struct.is_inside (front); }
+    void popFront () { front = front.next (); }
+    Pod  pod_struct;  // size,type, ...[]
+
+    this (spa_pod* pod) {
+        this.pod_struct = Pod (pod);
+        this.front      = Pod (SPA_POD_BODY (pod));
+    }
+}
+
+struct
+Pod {
+    spa_pod* _this;
+    alias _this this;
+
+    Pod
+    next () {
+        return Pod (cast (spa_pod*) spa_pod_next (_this));
+    }
+
+    bool
+    is_inside (Pod pod) {
+        return spa_pod_is_inside (_this, _this.size, pod._this);
+    }
+
+    string
+    as_string () {
+        switch (_this.type) with (spa_type) {
+            case SPA_TYPE_Bool   : return (cast (spa_pod_bool*)   _this).value ? "true" : "false";
+            case SPA_TYPE_Id     : return (cast (spa_pod_id*)     _this).value.to!string;
+            case SPA_TYPE_Int    : return (cast (spa_pod_int *)   _this).value.to!string;
+            case SPA_TYPE_Long   : return (cast (spa_pod_long *)  _this).value.to!string;
+            case SPA_TYPE_Float  : return (cast (spa_pod_float*)  _this).value.to!string;
+            case SPA_TYPE_Double : return (cast (spa_pod_double*) _this).value.to!string;
+            case SPA_TYPE_String : return fromStringz (cast (char*) SPA_POD_BODY (cast (spa_pod*) _this)).to!string;
+            case SPA_TYPE_Bytes  : return fromStringz (cast (char*) SPA_POD_BODY (cast (spa_pod*) _this)).to!string;
+            default              : return "?";
+        }
+    }
+}
+
+struct
+Pod_object {
+    spa_pod_object* _this;
+
+    Prop
+    prop_first () {
+        return Prop (spa_pod_prop_first (&_this.body));
+    }
+
+    bool
+    is_inside (Prop prop) {
+        return spa_pod_prop_is_inside (&_this.body, _this.pod.size, prop._this);
+    }
+}
+
+struct
+Prop {
+    spa_pod_prop* _this;
+
+    spa_prop key        () { return cast (spa_prop)  _this.key; }
+    spa_pod* value      () { return cast (spa_pod*) &_this.value; }
+    spa_type value_type () { return cast (spa_type)  _this.value.type; }
+
+    Prop
+    next () {
+        return Prop (spa_pod_prop_next (_this));
+    }
+}
+
+auto
+SPA_PTROFF (T,BASE) (BASE* base, size_t offset) {
+    return cast (T*) (base + offset);
+}
+
+auto
+SPA_POD_BODY (spa_pod* pod) {
+    return SPA_PTROFF!spa_pod (pod,1);
+}
+
+auto
+_SPA_POD_PROP_SIZE (spa_pod_prop* prop) {
+    return spa_pod_prop.sizeof + prop.value.size;
+}
+
+auto 
+SPA_ROUND_MASK (ulong num, uint mask) {
+    return mask - 1;
+}
+
+auto
+_SPA_ROUND_UP_N (ulong num, uint _align) {
+    return ((num-1) | SPA_ROUND_MASK (num, _align)) + 1;
+}
+
+
