@@ -165,11 +165,15 @@ Node {
                     dump_pod_object (param);
 
                     spa_prop[] wanted = [SPA_PROP_volume, SPA_PROP_channelVolumes, SPA_PROP_softVolumes];
-                    if (Pod (param).find_any (wanted)) {
+                    static bool is_subsribed = false;
+                    if (!is_subsribed)
+                    if (id == 2 || Pod (param).find_any (wanted)) {
                         // subscribe_params
-                        uint32_t*  ids = cast (uint32_t*) wanted.ptr;
-                        uint32_t n_ids = cast (uint32_t)  wanted.length;
+                        uint32_t[] nodes = [2];
+                        uint32_t*  ids = cast (uint32_t*) nodes.ptr;
+                        uint32_t n_ids = cast (uint32_t)  nodes.length;
                         pw_node_subscribe_params (_this, ids, n_ids);
+                        is_subsribed = true;
                     }
                     break;
 
