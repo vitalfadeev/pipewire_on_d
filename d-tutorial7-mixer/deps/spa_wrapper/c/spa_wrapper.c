@@ -1,15 +1,34 @@
 #include "../include/spa_wrapper.h"
 
-int 
-_spa_format_parse (const struct spa_pod * 	format,
-		uint32_t * 	media_type,
-		uint32_t * 	media_subtype ) 
+
+int
+__spa_pod_parse_object (struct spa_pod* pod, uint32_t type, uint32_t* id, ...)
 {
-	return spa_format_parse (format, media_type, media_subtype);
+	int res;
+	va_list args;
+
+	va_start (args, id);
+	res = spa_pod_parse_object (pod,type,id,args);
+	va_end (args);
+
+	return res;
 }
 
-void 
-_spa_hook_remove (struct spa_hook* hook) 
+char*
+__find_node_name (struct spa_dict* props)
 {
-	spa_hook_remove ( 	hook	) ;
+    static const char* const name_keys[] = {
+        PW_KEY_NODE_NAME,
+        PW_KEY_NODE_DESCRIPTION,
+        PW_KEY_APP_NAME,
+        PW_KEY_MEDIA_NAME,
+    };
+
+    SPA_FOR_EACH_ELEMENT_VAR (name_keys, key) {
+        char* name = (char*) spa_dict_lookup (props, *key);
+        if (name)
+            return name;
+    }
+
+    return NULL;
 }

@@ -6,10 +6,11 @@ import context;
 import std.stdio : writeln;
 
 class
-Core_ {
+Core {
     pw_core*      _this;
     Context        context;
     Pendings       pendings;
+    Registry       registry;
 
     this (pw_core* _this, Context context) {
         this._this   = _this;
@@ -18,10 +19,11 @@ Core_ {
 
     Registry
     get_registry () {
-        return new Registry (
+        registry = new Registry (
             pw_core_get_registry (_this, PW_VERSION_REGISTRY, 0 /* user_data size */ ),
             this
         );
+        return registry;
     }
 
     ~this () {
@@ -30,8 +32,8 @@ Core_ {
 
     extern (C)
     static void 
-    on_core_done (void* _this, uint32_t id, int seq) {
-        with (cast (Core_) _this) {
+    on_coredone (void* _this, uint32_t id, int seq) {
+        with (cast (Core) _this) {
             if (id == PW_ID_CORE) {
                 pendings.remove (seq);
 
@@ -43,7 +45,7 @@ Core_ {
 
     static pw_core_events core_events = {
         PW_VERSION_CORE_EVENTS,
-        done: &on_core_done,
+        done: &on_coredone,
     };
 
     void 
@@ -58,14 +60,20 @@ Core_ {
         if ((err = pw_main_loop_run (context.loop)) < 0)
             printf ("main_loop_run error:%d!\n", err);
 
-        _spa_hook_remove (&core_listener);
+        spa_hook_remove (&core_listener);
     }
 
     void
     add_pending () {
         auto seq = pendings.add ();
-        auto _seq = pw_core_sync (_this, PW_ID_CORE, 0);
-        pendings.update (seq,_seq);        
+        auto _seq = pw_core_sync (_this, PW_ID_CORE, seq);
+        pendings.update (seq,_seq);
+    }
+
+    void
+    add_pending (int seq) {
+        auto _seq = pw_core_sync (_this, PW_ID_CORE, seq);
+        pendings.update (seq,_seq);
     }
 
     struct

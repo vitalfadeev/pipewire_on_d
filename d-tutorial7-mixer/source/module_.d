@@ -9,12 +9,12 @@ import std.stdio : writefln;
 class
 Module_ {
     pw_module* _this;
-    Core_       core_;
+    Core       core;
     spa_hook    module_listener;
 
-    this (void* _this, Core_ core_) {
+    this (void* _this, Core core) {
         this._this = cast (pw_module*) _this;
-        this.core_ = core_;
+        this.core = core;
 
         pw_module_add_listener (
             this._this,

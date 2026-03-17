@@ -7,12 +7,12 @@ import std.stdio : writefln;
 class
 Factory {
     pw_factory* _this;
-    Core_        core_;
+    Core        core;
     spa_hook     factory_listener;
 
-    this (void* _this, Core_ core_) {
+    this (void* _this, Core core) {
         this._this = cast (pw_factory*) _this;
-        this.core_ = core_;
+        this.core = core;
 
         pw_factory_add_listener (
             this._this,

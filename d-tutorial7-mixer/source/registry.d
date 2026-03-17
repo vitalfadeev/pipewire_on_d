@@ -8,21 +8,22 @@ import device;
 import module_;
 import node;
 import factory;
+import spa;
 
 class
 Registry {
     pw_registry* _this;
-    Core_         core_;
+    Core          core;
     spa_hook      registry_listener;
-    Client[]      clients;
     Device[]      devices;
-    Module_[]     modules;
+    Client[]      clients;
     Node[]        nodes;
+    Module_[]     modules;
     Factory[]     factorys;
 
-    this (pw_registry* _this, Core_ core_) {
+    this (pw_registry* _this, Core core) {
         this._this = _this;
-        this.core_ =  core_;
+        this.core =  core;
         pw_registry_add_listener (
             _this, 
             &registry_listener, // interface  // spa_hook
@@ -39,7 +40,7 @@ Registry {
     bind (T) (uint32_t id, const char* type, uint32_t version_) {
         return new T (
             pw_registry_bind (_this, id, type, version_, 0),
-            core_
+            core
         );
     }
 
@@ -56,8 +57,15 @@ Registry {
 
             // Node
             if (strcmp (type, PW_TYPE_INTERFACE_Node) == 0) {
+                auto name = __find_node_name (cast (spa_dict*) props);
+                printf ("node id,name: %u, %s\n", id,name);
+                printf ("  props: ");
+                foreach (item; spa_dict_for_each (props))  // spa_dict_item* item
+                    printf ("    %s: \"%s\"\n", item.key, item.value);
+
+
                 nodes ~= bind!Node (id,type,PW_VERSION_NODE);
-                core_.add_pending ();
+                core.add_pending ();
 
                 //events = &node_events;
                 //client_version = PW_VERSION_NODE;

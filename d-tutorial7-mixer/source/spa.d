@@ -4,16 +4,14 @@ import importc;
 import interfaces;
 import std.stdio : writeln;
 import std.stdio : writefln;
+import core.stdc.stdarg;
 import spa_list;
 
-//static 
-//void 
-//print_props (proxy_data* data, const pw_client_info* info) {
-//    printf ("\tprops:\n");
 
-//    foreach (item; spa_dict_for_each (info.props))  // spa_dict_item* item
-//        printf ("\t\t%s: \"%s\"\n", item.key, item.value);
-//}
+auto
+spa_pod_parse_object (POD,TYPE,ID,ARGS...) (POD pod,TYPE type,ID id, ARGS args) {
+    return __spa_pod_parse_object (pod,type,id,args);
+}
 
 //static 
 //void 
@@ -73,7 +71,7 @@ _spa_dict_for_each (DICT,ITEMS) {
 
 // SPA plugin
 //gpointer
-//wp_core_find_object (WpCore* self, GEqualFunc func, gconstpointer data) {
+//wp_corefind_object (WpCore* self, GEqualFunc func, gconstpointer data) {
 //  GObject* object;
 //  guint    i;
 
@@ -92,7 +90,7 @@ _spa_dict_for_each (DICT,ITEMS) {
 
 //WpPlugin *
 //wp_plugin_find (WpCore* core, const gchar* plugin_name) {
-//    GObject* p = wp_core_find_object (
+//    GObject* p = wp_corefind_object (
 //        core,
 //        cast (GEqualFunc) find_plugin_func, 
 //        GUINT_TO_POINTER (q)
@@ -100,3 +98,74 @@ _spa_dict_for_each (DICT,ITEMS) {
 
 //    return p;
 //}
+
+
+enum 
+spa_type {
+    /* Basic types */
+    SPA_TYPE_START = 0x00000,
+    SPA_TYPE_None,
+    SPA_TYPE_Bool,
+    SPA_TYPE_Id,
+    SPA_TYPE_Int,
+    SPA_TYPE_Long,
+    SPA_TYPE_Float,
+    SPA_TYPE_Double,
+    SPA_TYPE_String,
+    SPA_TYPE_Bytes,
+    SPA_TYPE_Rectangle,
+    SPA_TYPE_Fraction,
+    SPA_TYPE_Bitmap,
+    SPA_TYPE_Array,
+    SPA_TYPE_Struct,
+    SPA_TYPE_Object,
+    SPA_TYPE_Sequence,
+    SPA_TYPE_Pointer,
+    SPA_TYPE_Fd,
+    SPA_TYPE_Choice,
+    SPA_TYPE_Pod,
+    _SPA_TYPE_LAST,             /**< not part of ABI */
+
+    /* Pointers */
+    SPA_TYPE_POINTER_START = 0x10000,
+    SPA_TYPE_POINTER_Buffer,
+    SPA_TYPE_POINTER_Meta,
+    SPA_TYPE_POINTER_Dict,
+    _SPA_TYPE_POINTER_LAST,         /**< not part of ABI */
+
+    /* Events */
+    SPA_TYPE_EVENT_START = 0x20000,
+    SPA_TYPE_EVENT_Device,
+    SPA_TYPE_EVENT_Node,
+    _SPA_TYPE_EVENT_LAST,           /**< not part of ABI */
+
+    /* Commands */
+    SPA_TYPE_COMMAND_START = 0x30000,
+    SPA_TYPE_COMMAND_Device,
+    SPA_TYPE_COMMAND_Node,
+    _SPA_TYPE_COMMAND_LAST,         /**< not part of ABI */
+
+    /* Objects */
+    SPA_TYPE_OBJECT_START = 0x40000,
+    SPA_TYPE_OBJECT_PropInfo,
+    SPA_TYPE_OBJECT_Props,
+    SPA_TYPE_OBJECT_Format,
+    SPA_TYPE_OBJECT_ParamBuffers,
+    SPA_TYPE_OBJECT_ParamMeta,
+    SPA_TYPE_OBJECT_ParamIO,
+    SPA_TYPE_OBJECT_ParamProfile,
+    SPA_TYPE_OBJECT_ParamPortConfig,
+    SPA_TYPE_OBJECT_ParamRoute,
+    SPA_TYPE_OBJECT_Profiler,
+    SPA_TYPE_OBJECT_ParamLatency,
+    SPA_TYPE_OBJECT_ParamProcessLatency,
+    SPA_TYPE_OBJECT_ParamTag,
+    _SPA_TYPE_OBJECT_LAST,          /**< not part of ABI */
+
+    /* vendor extensions */
+    SPA_TYPE_VENDOR_PipeWire    = 0x02000000,
+
+    SPA_TYPE_VENDOR_Other       = 0x7f000000,
+};
+
+enum SPA_POD_PROP_FLAG_HINT_DICT = (1u<<2);

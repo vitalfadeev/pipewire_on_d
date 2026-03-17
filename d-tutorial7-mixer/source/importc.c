@@ -7,11 +7,11 @@
 // #include <signal.h>
 
 // // PipeWire
-// #define SPA_API_IMPL static
+// #define SPA_API_IMPL __attribute__((unused))
 // #include <pipewire/pipewire.h>
 
 // Spa
-// #define SPA_API_IMPL static
+// #define SPA_API_IMPL __attribute__((unused))
 // #include <spa/utils/result.h>
 // #include <spa/utils/string.h>
 // #include <spa/utils/hook.h>

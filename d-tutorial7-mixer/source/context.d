@@ -7,6 +7,7 @@ class
 Context {
     pw_context*  _this;
     pw_main_loop* loop;
+    Core          core;
 
     this () {
         loop  = pw_main_loop_new (null /* properties */ );
@@ -22,9 +23,9 @@ Context {
         pw_context_destroy (_this);
     }
 
-    Core_
+    Core
     connect () {
-        return new Core_ (
+        core = new Core (
             pw_context_connect (
                 _this, 
                 null /* properties */ ,
@@ -32,6 +33,7 @@ Context {
             ),
             this
         );
+        return core;
     }
 
     void
