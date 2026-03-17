@@ -230,6 +230,10 @@ Pod {
             case SPA_TYPE_Float  : writefln ("%s%f", prefix, (cast (spa_pod_float*)  _this).value); break;
             case SPA_TYPE_Double : writefln ("%s%f", prefix, (cast (spa_pod_double*) _this).value); break;
             case SPA_TYPE_String : writefln ("%s%s", prefix, fromStringz (cast (char*) SPA_POD_BODY (cast (spa_pod*) _this)).to!string); break;
+            case SPA_TYPE_Array  : 
+                writefln ("%s%s", prefix, cast (spa_type) (cast (spa_pod_array*)  _this).body.child.type); 
+                // foreach array of pod.body.child.type
+                break;
             case SPA_TYPE_Object : 
                 foreach (Prop prop; Pod_object_foreach (_this)) {
                     writefln ("%s%s: %s", prefix, prop.key, prop.value_type);
