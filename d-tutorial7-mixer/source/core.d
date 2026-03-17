@@ -64,6 +64,11 @@ Core {
     }
 
     void
+    main_loop_run () {
+        context.main_loop_run ();
+    }
+
+    void
     add_pending () {
         auto seq = pendings.add ();
         auto _seq = pw_core_sync (_this, PW_ID_CORE, seq);

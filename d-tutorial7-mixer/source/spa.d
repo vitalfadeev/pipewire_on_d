@@ -220,6 +220,16 @@ Pod {
         return spa_pod_is_inside (_this, _this.size, pod._this);
     }
 
+    bool
+    find (spa_prop key) {  // SPA_PROP_volume, SPA_PROP_channelVolumes, SPA_PROP_softVolumes
+        return false;
+    }
+
+    bool
+    find_any (spa_prop[] key) {  // SPA_PROP_volume, SPA_PROP_channelVolumes, SPA_PROP_softVolumes
+        return false;
+    }
+
     void
     dump (string prefix="") {
         switch (_this.type) with (spa_type) {
