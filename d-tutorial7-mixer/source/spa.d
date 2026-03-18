@@ -211,7 +211,7 @@ Node_info_foreach {
 }
 //   props
 struct
-Pod_object_foreach (alias TObject) {
+Pod_object_foreach (alias TObject) { // SPA_POD_OBJECT_FOREACH
     alias Key        = _Object_key_type!TObject;
     alias Prop       = _Prop!Key;
     alias Pod_object = _Pod_object!Prop;
@@ -233,7 +233,7 @@ Pod_object_foreach (alias TObject) {
 }
 
 struct
-Pod_struct_foreach {
+Pod_struct_foreach {  // SPA_POD_STRUCT_FOREACH
     Pod  front;
     bool empty ()    { return !pod_struct.is_inside (front); }
     void popFront () { front = front.next (); }
@@ -244,6 +244,21 @@ Pod_struct_foreach {
     this (spa_pod* pod) {
         this.pod_struct = Pod (pod);
         this.front      = Pod (SPA_POD_BODY (pod));
+    }
+}
+
+struct
+Pod_array_foreach {  // SPA_POD_ARRAY_FOREACH, SPA_POD_ARRAY_BODY_FOREACH
+    Pod  front;
+    bool empty ()    { return !(pod_array.size > 0 && pod_array.is_inside (front)); }
+    void popFront () { front = front.next (); }
+    Pod  pod_array;  // size,type, ...[]
+
+    @disable this();
+
+    this (spa_pod* pod) {
+        this.pod_array = Pod (pod);
+        this.front     = Pod (SPA_POD_BODY (pod));
     }
 }
 
@@ -290,13 +305,27 @@ Pod {
                 spa_pod* child;
                 child = spa_pod_get_values (_this, &n_vals, &choice);
                 return Pod (child).as_string;
+
             case SPA_TYPE_Struct : 
                 string s;
+                s ~= "[";
                 foreach (pod; Pod_struct_foreach (_this)) {
-                    if (s.length > 0)
-                        s ~= ",";
+                    if (s.length > 1)
+                        s ~= ", ";
                     s ~= pod.as_string;
                 }
+                s ~= "]";
+                return s;
+
+            case SPA_TYPE_Array : 
+                string s;
+                s ~= "[";
+                foreach (pod; Pod_array_foreach (_this)) {
+                    if (s.length > 1)
+                        s ~= ", ";
+                    s ~= pod.as_string;
+                }
+                s ~= "]";
                 return s;
             //case SPA_TYPE_OBJECT_Props    : return "?";
             //case SPA_TYPE_OBJECT_Format   : return "?";

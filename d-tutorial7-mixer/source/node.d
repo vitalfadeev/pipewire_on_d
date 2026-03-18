@@ -126,6 +126,8 @@ Node {
                     
                     //printf ("  iid,name,desc: %d, %s, %s\n", iid, name, desc);
                     //printf ("    type: %p, %d\n", ctype, container);
+
+                    // SPA_PARAM_PropInfo => SPA_TYPE_OBJECT_PropInfo => spa_prop_info[]
                     foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_PropInfo (param)) {
                         writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
                         // SPA_PROP_INFO_id
@@ -186,6 +188,11 @@ Node {
                     //    pw_node_subscribe_params (_this, ids, n_ids);
                     //    is_subsribed = true;
                     //}
+
+                    // SPA_PARAM_Props => SPA_TYPE_OBJECT_Props => spa_prop[]
+                    foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_Props (param)) {
+                        writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
+                    }
                     break;
 
                 case SPA_PARAM_Tag:
