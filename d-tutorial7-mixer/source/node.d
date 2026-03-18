@@ -127,7 +127,7 @@ Node {
                     //printf ("  iid,name,desc: %d, %s, %s\n", iid, name, desc);
                     //printf ("    type: %p, %d\n", ctype, container);
                     foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_PropInfo (param)) {
-                        writeln ("\t\tkey: ", prop.key); 
+                        writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
                         // SPA_PROP_INFO_id
                         // SPA_PROP_INFO_name
                         // SPA_PROP_INFO_description

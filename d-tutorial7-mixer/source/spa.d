@@ -272,6 +272,39 @@ Pod {
         return false;
     }
 
+    string
+    as_string () {
+        switch (_this.type) with (spa_type) {
+            case SPA_TYPE_Bool   : return (cast (spa_pod_bool*)   _this).value.to!string;
+            case SPA_TYPE_Id     : return (cast (spa_pod_id*)     _this).value.to!string;
+            case SPA_TYPE_Int    : return (cast (spa_pod_int *)   _this).value.to!string;
+            case SPA_TYPE_Long   : return (cast (spa_pod_long *)  _this).value.to!string;
+            case SPA_TYPE_Float  : return (cast (spa_pod_float*)  _this).value.to!string;
+            case SPA_TYPE_Double : return (cast (spa_pod_double*) _this).value.to!string;
+            case SPA_TYPE_String : return fromStringz (cast (char*) SPA_POD_BODY (cast (spa_pod*) _this)).to!string;
+            case SPA_TYPE_Choice : 
+                // n_vals
+                // choice
+                uint32_t n_vals;
+                uint32_t choice;
+                spa_pod* child;
+                child = spa_pod_get_values (_this, &n_vals, &choice);
+                return Pod (child).as_string;
+            case SPA_TYPE_Struct : 
+                string s;
+                foreach (pod; Pod_struct_foreach (_this)) {
+                    if (s.length > 0)
+                        s ~= ",";
+                    s ~= pod.as_string;
+                }
+                return s;
+            //case SPA_TYPE_OBJECT_Props    : return "?";
+            //case SPA_TYPE_OBJECT_Format   : return "?";
+            default                       :
+                return "? ("~(cast (spa_type) _this.type).to!string~")";
+        }
+    }
+
     void
     parse () {
         switch (_this.type) with (spa_type) {
@@ -347,7 +380,7 @@ _Prop (Key) {
     spa_pod_prop* _this;
 
     Key      key        () { return cast (Key)       _this.key; }
-    spa_pod* value      () { return cast (spa_pod*) &_this.value; }
+    Pod      value      () { return Pod (cast (spa_pod*) &_this.value); }
     spa_type value_type () { return cast (spa_type)  _this.value.type; }
 
     _Prop!Key
