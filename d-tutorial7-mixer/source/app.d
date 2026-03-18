@@ -3,7 +3,6 @@ import context;
 import std.stdio : writeln;
 
 
-
 extern (C)
 int main (int argc, char** argv) {
     pw_init (&argc, &argv);
@@ -19,8 +18,8 @@ int main (int argc, char** argv) {
         // registry
         // wait registry
         core.get_registry ();
-        //core.roundtrip ();
-        core.main_loop_run ();
+        core.roundtrip ();
+        //core.main_loop_run ();
 
         // print nodex
         writeln ("Nodes: ", core.registry.nodes.length);

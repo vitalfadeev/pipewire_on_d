@@ -57,12 +57,11 @@ Registry {
 
             // Node
             if (strcmp (type, PW_TYPE_INTERFACE_Node) == 0) {
-                auto name = __find_node_name (cast (spa_dict*) props);
-                printf ("node id,name: %u, %s\n", id,name);
-                printf ("  props: ");
-                foreach (item; spa_dict_for_each (props))  // spa_dict_item* item
-                    printf ("    %s: \"%s\"\n", item.key, item.value);
-
+                //auto name = __find_node_name (cast (spa_dict*) props);
+                //printf ("node id,name: %u, %s\n", id,name);
+                //printf ("  props: ");
+                //foreach (item; spa_dict_for_each (props))  // spa_dict_item* item
+                //    printf ("    %s: \"%s\"\n", item.key, item.value);
 
                 nodes ~= bind!Node (id,type,PW_VERSION_NODE);
                 core.add_pending ();

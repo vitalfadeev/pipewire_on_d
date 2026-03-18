@@ -172,15 +172,55 @@ spa_type {
 
 enum SPA_POD_PROP_FLAG_HINT_DICT = (1u<<2);
 
+template
+_Object_key_type (alias TObject) {
+    static if (TObject == SPA_TYPE_OBJECT_Props)               alias _Object_key_type = spa_prop;
+    static if (TObject == SPA_TYPE_OBJECT_ParamRoute)          alias _Object_key_type = spa_param_route;
+    static if (TObject == SPA_TYPE_OBJECT_ParamTag)            alias _Object_key_type = spa_param_tag;
+    static if (TObject == SPA_TYPE_OBJECT_ParamBuffers)        alias _Object_key_type = spa_param_buffers;
+    static if (TObject == SPA_TYPE_OBJECT_ParamMeta)           alias _Object_key_type = spa_param_meta;
+    static if (TObject == SPA_TYPE_OBJECT_ParamIO)             alias _Object_key_type = spa_param_io;
+    static if (TObject == SPA_TYPE_OBJECT_ParamDict)           alias _Object_key_type = spa_param_dict;
+    static if (TObject == SPA_TYPE_OBJECT_Format)              alias _Object_key_type = spa_media_type;
+    static if (TObject == SPA_TYPE_OBJECT_ParamLatency)        alias _Object_key_type = spa_param_latency;
+    static if (TObject == SPA_TYPE_OBJECT_ParamProcessLatency) alias _Object_key_type = spa_param_process_latency;
+    static if (TObject == SPA_TYPE_OBJECT_PeerParam)           alias _Object_key_type = spa_peer_param;
+    static if (TObject == SPA_TYPE_OBJECT_ParamPortConfig)     alias _Object_key_type = spa_param_port_config;
+    static if (TObject == SPA_TYPE_OBJECT_ParamProfile)        alias _Object_key_type = spa_param_profile  ;
+    static if (TObject == SPA_TYPE_OBJECT_Profiler)            alias _Object_key_type = spa_profiler;
+    static if (TObject == SPA_TYPE_OBJECT_PropInfo)            alias _Object_key_type = spa_prop_info;
+}
 
 // Node
+//   params
+struct
+Node_info_foreach {
+    Param    front;
+    bool     empty ()    { return length == 0; }
+    void     popFront () { front = front.next (); length--; }
+    pw_node* node;
+    const pw_node_info* _info;
+    uint32_t length;
+
+    this (pw_node* node, pw_node_info* _info) {  // pw_node*
+        this.node   =  node;
+        this._info  = _info;
+        this.front  = Param (_info.params);
+        this.length = _info.n_params;
+    }
+}
 //   props
 struct
-Pod_object_foreach {
+Pod_object_foreach (alias TObject) {
+    alias Key        = _Object_key_type!TObject;
+    alias Prop       = _Prop!Key;
+    alias Pod_object = _Pod_object!Prop;
     Prop front;
     bool empty ()    { return !obj.is_inside (front); }
     void popFront () { front = front.next (); }
     Pod_object obj;
+
+    @disable this();
 
     this (spa_pod_object* obj) {  // pod*
         this.obj   = Pod_object (obj);
@@ -198,6 +238,8 @@ Pod_struct_foreach {
     bool empty ()    { return !pod_struct.is_inside (front); }
     void popFront () { front = front.next (); }
     Pod  pod_struct;  // size,type, ...[]
+
+    @disable this();
 
     this (spa_pod* pod) {
         this.pod_struct = Pod (pod);
@@ -231,6 +273,31 @@ Pod {
     }
 
     void
+    parse () {
+        switch (_this.type) with (spa_type) {
+            case SPA_TYPE_OBJECT_PropInfo : _parse_PropInfo (); break;
+            case SPA_TYPE_OBJECT_Props    : break;
+            case SPA_TYPE_OBJECT_Format   : break;
+            default                       :
+        }
+    }
+
+    void
+    _parse_PropInfo () {
+        uint32_t iid;
+
+        foreach (/*Prop*/ prop; Pod_object_foreach!SPA_TYPE_OBJECT_PropInfo (_this)) {
+            writefln ("  %s: %s", prop.key, prop.value_type);
+            switch (prop.key) with (spa_prop_info) {
+                case SPA_PROP_INFO_id : break;
+                default:
+            }
+        }
+
+        spa_pod* info = SPA_POD_BODY (_this);
+    }
+
+    void
     dump (string prefix="") {
         switch (_this.type) with (spa_type) {
             case SPA_TYPE_Bool   : writefln ("%s%d", prefix, (cast (spa_pod_bool*)   _this).value); break;
@@ -245,10 +312,10 @@ Pod {
                 // foreach array of pod.body.child.type
                 break;
             case SPA_TYPE_Object : 
-                foreach (Prop prop; Pod_object_foreach (_this)) {
-                    writefln ("%s%s: %s", prefix, prop.key, prop.value_type);
-                    Pod (prop.value).dump (prefix~" ");
-                }
+                //foreach (Prop prop; Pod_object_foreach (_this)) {
+                //    writefln ("%s%s: %s", prefix, prop.key, prop.value_type);
+                //    Pod (prop.value).dump (prefix~" ");
+                //}
                 break;
             case SPA_TYPE_Struct : 
                 foreach (Pod _param; Pod_struct_foreach (_this)) {
@@ -261,7 +328,7 @@ Pod {
 }
 
 struct
-Pod_object {
+_Pod_object (Prop) {
     spa_pod_object* _this;
 
     Prop
@@ -276,16 +343,29 @@ Pod_object {
 }
 
 struct
-Prop {
+_Prop (Key) {
     spa_pod_prop* _this;
 
-    spa_prop key        () { return cast (spa_prop)  _this.key; }
+    Key      key        () { return cast (Key)       _this.key; }
     spa_pod* value      () { return cast (spa_pod*) &_this.value; }
     spa_type value_type () { return cast (spa_type)  _this.value.type; }
 
-    Prop
+    _Prop!Key
     next () {
-        return Prop (spa_pod_prop_next (_this));
+        return _Prop!Key (spa_pod_prop_next (_this));
+    }
+}
+
+struct
+Param {
+    spa_param_info* _this;
+    alias _this this;
+
+    spa_param_type id () { return cast (spa_param_type) _this.id; }
+
+    Param
+    next () {
+        return Param (_this+1);
     }
 }
 
