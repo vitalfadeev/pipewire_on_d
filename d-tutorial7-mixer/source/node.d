@@ -10,7 +10,7 @@ import spa;
 class
 Node {
     pw_node*    _this;
-    Core        core;
+    Core         core;
     spa_hook     node_listener;
     pw_node_info info;
     string[]     params;
