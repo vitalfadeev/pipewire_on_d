@@ -310,8 +310,7 @@ Pod {
                 string s;
                 s ~= "[";
                 foreach (pod; Pod_struct_foreach (_this)) {
-                    if (s.length > 1)
-                        s ~= ", ";
+                    if (s.length > 1) s ~= ", ";
                     s ~= pod.as_string;
                 }
                 s ~= "]";
@@ -321,8 +320,7 @@ Pod {
                 string s;
                 s ~= "[";
                 foreach (pod; Pod_array_foreach (_this)) {
-                    if (s.length > 1)
-                        s ~= ", ";
+                    if (s.length > 1) s ~= ", ";
                     s ~= pod.as_string;
                 }
                 s ~= "]";

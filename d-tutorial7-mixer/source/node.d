@@ -46,10 +46,21 @@ Node {
                 printf ("\t\t%2d: %s\n", param.id, id_name);
 
                 switch (param.id) with (spa_param_type) {
-                    case SPA_PARAM_Format   : break;
-                    case SPA_PARAM_PropInfo : _enum_params (param.id); break;
-                    case SPA_PARAM_Props    : _enum_params (param.id); break;
-                    default:
+                    case SPA_PARAM_Format         : _enum_params (param.id); break;
+                    case SPA_PARAM_PropInfo       : _enum_params (param.id); break;
+                    case SPA_PARAM_Props          : _enum_params (param.id); break;
+                    case SPA_PARAM_IO             : _enum_params (param.id); break;
+                    //
+                    case SPA_PARAM_EnumProfile    : break;
+                    case SPA_PARAM_Profile        : break;
+                    case SPA_PARAM_EnumRoute      : break;
+                    case SPA_PARAM_Route          : break;
+                    case SPA_PARAM_EnumPortConfig : break;
+                    case SPA_PARAM_PortConfig     : break;
+                    case SPA_PARAM_Latency        : break;
+                    case SPA_PARAM_ProcessLatency : break;
+                    case SPA_PARAM_Tag            : break;
+                    default                       :
                 }
             }
         }
@@ -94,6 +105,11 @@ Node {
                     //    case SPA_MEDIA_TYPE_application: break;
                     //    default:
                     //}
+
+                    // SPA_PARAM_Format => SPA_TYPE_OBJECT_Format => spa_media_type
+                    foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_Format (param)) {
+                        writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
+                    }
                     break;
                 case SPA_PARAM_PropInfo:
                     // SPA_TYPE_OBJECT_PropInfo
@@ -134,6 +150,7 @@ Node {
                         // SPA_PROP_INFO_name
                         // SPA_PROP_INFO_description
                         // SPA_PROP_INFO_type
+                        // ...
                     }
                     break;
 
@@ -191,6 +208,13 @@ Node {
 
                     // SPA_PARAM_Props => SPA_TYPE_OBJECT_Props => spa_prop[]
                     foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_Props (param)) {
+                        writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
+                    }
+                    break;
+
+                case SPA_PARAM_IO:
+                    // SPA_PARAM_IO => SPA_TYPE_OBJECT_ParamIO => spa_param_io[]
+                    foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_ParamIO (param)) {
                         writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
                     }
                     break;
