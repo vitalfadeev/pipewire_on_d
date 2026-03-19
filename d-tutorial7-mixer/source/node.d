@@ -9,40 +9,40 @@ import spa;
 import klass;
 
 class
-Node {
-    pw_node*      _this;
+Node : Pw_object {
+    pw_node*      _this () { return cast (pw_node*) proxy; }  // alias to proxy
     pw_node_info  _info;
-    Core           core;
     string[]       params;
-    Object_        o;
     //
     static __gshared
     Klass          klass = {
         type:          PW_TYPE_INTERFACE_Node,
         version_:      PW_VERSION_NODE,
         events:        &events,
-        destroy_:      &destroy_,
-        dump:          &dump,
         name_key:      PW_KEY_NODE_NAME.ptr,
     };
-    __gshared
+    static __gshared
     pw_node_events events = {
         PW_VERSION_NODE_EVENTS,
-        info  : cast (typeof (pw_node_events.info))  &info,
-        param : cast (typeof (pw_node_events.param)) &param
+        info  : cast (typeof (pw_node_events.info))  &info_event,
+        param : cast (typeof (pw_node_events.param)) &param_event
     };
 
-    this (Core core) {
-        this.core = core;
+    this (Core core, uint32_t id, uint32_t permissions, const char*  type, uint32_t version_, const spa_dict* props)  {
+        super (core, id, permissions, type, version_, props);
     }
 
     ~this () {
-        pw_proxy_destroy (cast (pw_proxy *) _this);        
+        if (info) {
+            pw_node_info_free (cast (pw_node_info*) info);
+            info = null;
+        }
     }
+
 
     extern (C)
     void 
-    info (/*void* _node, */const pw_node_info* _info) {
+    info_event (/*void* _node, */const pw_node_info* _info) {
         printf ("node\n");
         printf ("node_info: id: %u\n", _info.id);
         printf ("\tparams: %u\n", _info.n_params);
@@ -90,7 +90,7 @@ Node {
 
     extern (C)
     void
-    param (/*void* _node, */int seq, uint32_t id, uint32_t index, uint32_t next, spa_pod* param) {
+    param_event (/*void* _node, */int seq, uint32_t id, uint32_t index, uint32_t next, spa_pod* param) {
         printf ("node\n");
         printf ("node_param: id:%u\n", id);
         writefln ("  %s", cast (spa_param_type) id);
@@ -234,16 +234,9 @@ Node {
         done:
     }
 
+    override
     void 
-    destroy_ (Object_* o) {
-        if (o.info) {
-            pw_node_info_free (cast (pw_node_info*) o.info);
-            o.info = null;
-        }
-    }
-
-    void 
-    dump (Object_* o) {
+    dump () {
         //
     }
 }

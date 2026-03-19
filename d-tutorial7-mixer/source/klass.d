@@ -1,6 +1,7 @@
 import importc;
 import interfaces;
 import spa;
+import core_;
 
 
 struct 
@@ -8,41 +9,9 @@ Klass {
     const char* type;
     uint32_t    version_;
     const void* events;
-    Destroy_fn  destroy_;
-    Dump_fn     dump;
     const char* name_key;
-
-    alias Destroy_fn = void function (Object_* object);
-    alias Dump_fn    = void function (Object_* object);
 };
 
-struct 
-Object_ {
-    spa_list        link;
-
-    Data*           data;
-
-    uint32_t        id;
-    uint32_t        permissions;
-    char*           type;
-    uint32_t        version_;
-    pw_properties*  props;
-
-    Klass*          klass;
-    void*           info; // pw_device_info* | pw_node_info*
-    //pw_node_info*   info;
-    spa_param_info* params;
-    uint32_t        n_params;
-
-    int             changed;
-    spa_list        param_list;
-    spa_list        pending_list;
-    spa_list        data_list;
-
-    pw_proxy*       proxy;
-    spa_hook        proxy_listener;
-    spa_hook        object_listener;
-}
 
 struct 
 Data {
@@ -66,4 +35,74 @@ Data {
     uint32_t        state;  // STATE_*
 
     //uint            monitor:1;
+}
+
+class Pw_proxy {
+    pw_proxy*       proxy;
+    spa_hook        proxy_listener;
+}
+
+class Pw_object : Pw_proxy {
+    spa_list        link;
+
+    Data*           data;
+
+    uint32_t        id;
+    uint32_t        permissions;
+    char*           type;
+    uint32_t        version_;
+    pw_properties*  props;
+
+    Klass*          klass;
+    void*           info; // pw_device_info* | pw_node_info*
+    spa_param_info* params;
+    uint32_t        n_params;
+
+    int             changed;
+    spa_list        param_list;
+    spa_list        pending_list;
+    spa_list        data_list;
+
+    spa_hook        object_listener;
+    Core            core;
+
+    this (Core core, uint32_t id,
+        uint32_t permissions, const char*  type,
+        uint32_t version_, const spa_dict* props) 
+    {
+        this.core = core;
+        this.id          = id;
+        this.permissions = permissions;
+        this.type        = strdup (type);
+        this.version_    = version_;
+        this.props       = props ? pw_properties_new_dict (cast (spa_dict*) props) : null;
+    }
+
+    extern (C)
+    void
+    destroy_removed (void* data) {
+        pw_proxy_destroy (proxy);
+    }
+
+    void
+    destroy_proxy (void* data) {
+        spa_hook_remove (&proxy_listener);
+        if (klass !is null) {
+            if (klass.events)
+                spa_hook_remove (&object_listener);
+        }
+        proxy = null;
+    }
+
+    static 
+    pw_proxy_events proxy_events = {
+        PW_VERSION_PROXY_EVENTS,
+        removed: cast (typeof (pw_proxy_events.removed)) &destroy_removed,
+        destroy: cast (typeof (pw_proxy_events.destroy)) &destroy_proxy,
+    };
+
+    void 
+    dump () {
+        //
+    }
 }

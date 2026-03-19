@@ -9,48 +9,41 @@ import std.stdio : writefln;
 import std.conv : to;
 
 class
-Device {
-    pw_device* _this;
-    Core        core;
-    string[]    params;
-    spa_hook    listener;
+Device : Pw_object {
+    pw_device*    _this () { return cast (pw_device*) proxy; }  // alias to proxy
+    Core           core;
+    string[]       params;
+    spa_hook       listener;
     //
     static
     Klass          klass = {
         type:          PW_TYPE_INTERFACE_Device,
         version_:      PW_VERSION_DEVICE,
         events:        &events,
-        destroy_:      &destroy_,
-        dump:          &dump,
         name_key:      PW_KEY_DEVICE_NAME.ptr,
     };
     __gshared
     pw_device_events events = {
         PW_VERSION_DEVICE_EVENTS,
-        info  : cast (typeof (pw_device_events.info))  &info,
-        param : cast (typeof (pw_device_events.param)) &param,
+        info  : cast (typeof (pw_device_events.info))  &info_event,
+        param : cast (typeof (pw_device_events.param)) &param_event,
     };
     
 
-    this (void* _this, Core core) {
-        this._this = cast (pw_device*) _this;
-        this.core = core;
-
-        pw_device_add_listener (
-            this._this,
-            &listener,
-            &events, 
-            cast (void*) this
-        );        
+    this (Core core, uint32_t id, uint32_t permissions, const char*  type, uint32_t version_, const spa_dict* props)  {
+        super (core, id, permissions, type, version_, props);
     }
 
     ~this () {
-        pw_proxy_destroy (cast (pw_proxy *) _this);        
+        if (info) {
+            pw_device_info_free (cast (pw_device_info*) info);
+            info = null;
+        }
     }
 
     extern (C)
     void 
-    info (/*void* _this, */const pw_device_info* _info) {
+    info_event (/*void* _this, */const pw_device_info* _info) {
         printf ("device: id: %u\n", _info.id);
         printf ("\tparams: %u\n",   _info.n_params);
 
@@ -74,7 +67,7 @@ Device {
 
     extern (C)
     void 
-    param (/*void* _this, */int seq, uint32_t id, uint32_t index, uint32_t next, spa_pod* param) {
+    param_event (/*void* _this, */int seq, uint32_t id, uint32_t index, uint32_t next, spa_pod* param) {
         printf ("device param: id:%u\n", id);
         writefln ("  %s", cast (spa_param_type) id);
 
@@ -83,16 +76,9 @@ Device {
         done:
     }
 
+    override
     void 
-    destroy_ (Object_* o) {
-        if (o.info) {
-            pw_device_info_free (cast (pw_device_info*) o.info);
-            o.info = null;
-        }
-    }
-
-    void 
-    dump (Object_* o) {
+    dump () {
         //
     }
 }

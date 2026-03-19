@@ -10,6 +10,7 @@ import node;
 import factory;
 import spa;
 import klass;
+import std.stdio : writeln;
 
 class
 Registry {
@@ -38,11 +39,36 @@ Registry {
     }
 
     T
-    bind (T) (uint32_t id, const char* type) {
-        return new T (
-            pw_registry_bind (_this, id, type, T.klass.version_, 0),
-            core
-        );
+    bind (T) ( uint32_t id,
+        uint32_t permissions, const char*  type,
+        uint32_t version_, const spa_dict* props) 
+    {
+        auto o = new T (core, id, permissions, type, version_, props);
+
+        if (T.klass.events !is null) {
+            o.proxy = cast (pw_proxy*) pw_registry_bind (_this, id, type, T.klass.version_, 0);
+
+            if (o.proxy !is null) {
+            bind_ok:
+                pw_proxy_add_listener (o.proxy, &o.proxy_listener, &o.proxy_events, cast (void*) o);
+
+                if (T.klass.events)
+                    pw_proxy_add_object_listener (o.proxy, &o.object_listener, T.klass.events, cast (void*) o);
+                else
+                    o.changed++;
+
+                core.sync ();
+
+                return o;
+            }
+            else {
+            bind_failed:
+                //pw_log_error ("can't bind object for %u %s/%d: %m", id, type, version_);
+                o.destroy ();
+            }
+        }
+
+        return null;                
     }
 
     extern (C)
@@ -63,38 +89,9 @@ Registry {
             foreach (item; spa_dict_for_each (props))  // spa_dict_item* item
                 printf ("    %s: \"%s\"\n", item.key, item.value);
 
-            auto _node = new Node (core);
-            nodes ~= _node;
-            //_node.o.data       = d;
-            _node.o.id          = id;
-            _node.o.permissions = permissions;
-            _node.o.type        = strdup (type);
-            _node.o.version_    = version_;
-            _node.o.props       = props ? pw_properties_new_dict (cast (spa_dict*) props) : null;
-
-            //
-            _node.o.klass = find_klass (type, version_);
-            if (_node.o.klass !is null) {
-                _node.o.proxy = cast (pw_proxy*) pw_registry_bind (_this, id, type, _node.o.klass.version_, 0);
-                _node._this   = cast (pw_node*) _node.o.proxy;
-
-                if (_node.o.proxy is null) goto bind_failed;
-
-                pw_proxy_add_listener (_node.o.proxy, &_node.o.proxy_listener, &proxy_events, cast (void*) _node);
-
-                if (_node.o.klass.events)
-                    pw_proxy_add_object_listener (_node.o.proxy, &_node.o.object_listener, _node.o.klass.events, cast (void*) _node);
-                else
-                    _node.o.changed++;
-
-                core.sync ();
-                return;
-
-                bind_failed:
-                    //pw_log_error ("can't bind object for %u %s/%d: %m", id, type, version_);
-                    //object_destroy (&_node.o);
-                    return;
-            }
+            auto node = bind!Node (id, permissions, type, version_, props);
+            if (node !is null)
+                nodes ~= node;
         }
         //else
         //// Client
@@ -160,55 +157,3 @@ Registry {
         //global_remove : &registry_event_global_remove,
     };
 }
-
-extern (C)
-void
-destroy_removed (void* data) {
-    Object_* o = cast (Object_*) data;
-    pw_proxy_destroy (o.proxy);
-}
-
-extern (C)
-void
-destroy_proxy (void* data) {
-    Object_* o = cast (Object_*) data;
-
-    spa_hook_remove (&o.proxy_listener);
-    if (o.klass !is null) {
-        if (o.klass.events)
-            spa_hook_remove (&o.object_listener);
-        if (o.klass.destroy_)
-            o.klass.destroy_ (o);
-    }
-    o.proxy = null;
-}
-
-static 
-pw_proxy_events proxy_events = {
-    PW_VERSION_PROXY_EVENTS,
-    removed: &destroy_removed,
-    destroy: &destroy_proxy,
-};
-
-Klass*
-find_klass (const char* type, uint32_t version_) {
-    //SPA_FOR_EACH_ELEMENT_VAR(classes, c) {
-    foreach (k; klasses) {
-        if (spa_streq (k.type, type) && k.version_ <= version_)
-            return cast (Klass*) k;
-    }
-    return null;
-}
-
-static const 
-Klass*[] klasses = [
-    //&core_class,
-    //&module_class,
-    //&factory_class,
-    //&client_class,
-    //&device_class,
-    &Node.klass,
-    //&port_class,
-    //&link_class,
-    //&metadata_class,
-];
