@@ -6,25 +6,34 @@ import std.stdio : writefln;
 import std.conv : to;
 import std.string : fromStringz,toStringz;
 import spa;
+import klass;
 
 class
 Node {
-    pw_node*    _this;
-    Core         core;
-    spa_hook     node_listener;
-    pw_node_info info;
-    string[]     params;
+    pw_node*      _this;
+    pw_node_info  _info;
+    Core           core;
+    string[]       params;
+    Object_        o;
+    //
+    static __gshared
+    Klass          klass = {
+        type:          PW_TYPE_INTERFACE_Node,
+        version_:      PW_VERSION_NODE,
+        events:        &events,
+        destroy_:      &destroy_,
+        dump:          &dump,
+        name_key:      PW_KEY_NODE_NAME.ptr,
+    };
+    __gshared
+    pw_node_events events = {
+        PW_VERSION_NODE_EVENTS,
+        info  : cast (typeof (pw_node_events.info))  &info,
+        param : cast (typeof (pw_node_events.param)) &param
+    };
 
-    this (void* _this, Core core) {
-        this._this = cast (pw_node*) _this;
+    this (Core core) {
         this.core = core;
-
-        pw_node_add_listener (
-            this._this,
-            &node_listener,
-            &node_events, 
-            cast (void*) this
-        );        
     }
 
     ~this () {
@@ -32,36 +41,34 @@ Node {
     }
 
     extern (C)
-    static void 
-    node_info (void* _node, const pw_node_info* _info) {
-        with (cast (Node) _node) {
-            printf ("node\n");
-            printf ("node_info: id: %u\n", _info.id);
-            printf ("\tparams: %u\n", _info.n_params);
+    void 
+    info (/*void* _node, */const pw_node_info* _info) {
+        printf ("node\n");
+        printf ("node_info: id: %u\n", _info.id);
+        printf ("\tparams: %u\n", _info.n_params);
 
-            info = cast (pw_node_info) (*_info); // props
+        this._info = cast (pw_node_info) (*_info); // props
 
-            foreach (Param param; Node_info_foreach (cast (pw_node*) _node, cast (pw_node_info*) _info)) {
-                auto id_name = param.id.to!string.toStringz;
-                printf ("\t\t%2d: %s\n", param.id, id_name);
+        foreach (ref Param param; Node_info_params_foreach (_info.n_params, _info.params)) {
+            auto id_name = param.id.to!string.toStringz;
+            printf ("\t\t%2d: %s\n", param.id, id_name);
 
-                switch (param.id) with (spa_param_type) {
-                    case SPA_PARAM_Format         : _enum_params (param.id); break;
-                    case SPA_PARAM_PropInfo       : _enum_params (param.id); break;
-                    case SPA_PARAM_Props          : _enum_params (param.id); break;
-                    case SPA_PARAM_IO             : _enum_params (param.id); break;
-                    //
-                    case SPA_PARAM_EnumProfile    : break;
-                    case SPA_PARAM_Profile        : break;
-                    case SPA_PARAM_EnumRoute      : break;
-                    case SPA_PARAM_Route          : break;
-                    case SPA_PARAM_EnumPortConfig : break;
-                    case SPA_PARAM_PortConfig     : break;
-                    case SPA_PARAM_Latency        : break;
-                    case SPA_PARAM_ProcessLatency : break;
-                    case SPA_PARAM_Tag            : break;
-                    default                       :
-                }
+            switch (param.id) with (spa_param_type) {
+                case SPA_PARAM_Format         : _enum_params (param.id); break;
+                case SPA_PARAM_PropInfo       : _enum_params (param.id); break;
+                case SPA_PARAM_Props          : _enum_params (param.id); break;
+                case SPA_PARAM_IO             : _enum_params (param.id); break;
+                //
+                case SPA_PARAM_EnumProfile    : break;
+                case SPA_PARAM_Profile        : break;
+                case SPA_PARAM_EnumRoute      : break;
+                case SPA_PARAM_Route          : break;
+                case SPA_PARAM_EnumPortConfig : break;
+                case SPA_PARAM_PortConfig     : break;
+                case SPA_PARAM_Latency        : break;
+                case SPA_PARAM_ProcessLatency : break;
+                case SPA_PARAM_Tag            : break;
+                default                       :
             }
         }
     }
@@ -72,168 +79,173 @@ Node {
 
         //if (!SPA_FLAG_IS_SET (param.flags, SPA_PARAM_INFO_READ)) continue;
 
-        auto seq = core.pendings.add ();
+        //auto seq = core.pendings.add ();
+        auto seq = 0;
         // node_info_props(&sender, object_id, info);
         pw_node_enum_params (_this, seq, id, 0, 0, null);
-        core.add_pending (seq);
+        core.sync ();
 
         //ps[i].user = 0;        
     }
 
     extern (C)
-    static void
-    node_param (void* _node, int seq, uint32_t id, uint32_t index, uint32_t next, spa_pod* param) {
-        with (cast (Node) _node) {
-            printf ("node\n");
-            printf ("node_param: id:%u\n", id);
-            writefln ("  %s", cast (spa_param_type) id);
+    void
+    param (/*void* _node, */int seq, uint32_t id, uint32_t index, uint32_t next, spa_pod* param) {
+        printf ("node\n");
+        printf ("node_param: id:%u\n", id);
+        writefln ("  %s", cast (spa_param_type) id);
 
-            if (param is null) goto done;
+        if (param is null) goto done;
 
-            switch (id) with (spa_param_type) {
-                case SPA_PARAM_Format:
-                    //uint32_t media_type, media_subtype;
-                    //if (spa_format_parse (param, &media_type, &media_subtype) < 0) goto done; 
-                    //writefln ("  media_type: %s", cast (spa_media_type) media_type);
-                    //writefln ("    %s", cast (spa_media_subtype) media_subtype);
-                    //switch (media_type) with (spa_media_type) {  // and spa_media_subtype, and spa_format
-                    //    case SPA_MEDIA_TYPE_audio: break;  // SPA_MEDIA_SUBTYPE_raw
-                    //    case SPA_MEDIA_TYPE_video: break;
-                    //    case SPA_MEDIA_TYPE_image: break;
-                    //    case SPA_MEDIA_TYPE_binary: break;
-                    //    case SPA_MEDIA_TYPE_stream: break;
-                    //    case SPA_MEDIA_TYPE_application: break;
-                    //    default:
-                    //}
+        switch (id) with (spa_param_type) {
+            case SPA_PARAM_Format:
+                //uint32_t media_type, media_subtype;
+                //if (spa_format_parse (param, &media_type, &media_subtype) < 0) goto done; 
+                //writefln ("  media_type: %s", cast (spa_media_type) media_type);
+                //writefln ("    %s", cast (spa_media_subtype) media_subtype);
+                //switch (media_type) with (spa_media_type) {  // and spa_media_subtype, and spa_format
+                //    case SPA_MEDIA_TYPE_audio: break;  // SPA_MEDIA_SUBTYPE_raw
+                //    case SPA_MEDIA_TYPE_video: break;
+                //    case SPA_MEDIA_TYPE_image: break;
+                //    case SPA_MEDIA_TYPE_binary: break;
+                //    case SPA_MEDIA_TYPE_stream: break;
+                //    case SPA_MEDIA_TYPE_application: break;
+                //    default:
+                //}
 
-                    // SPA_PARAM_Format => SPA_TYPE_OBJECT_Format => spa_media_type
-                    foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_Format (param)) {
-                        writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
-                    }
-                    break;
-                case SPA_PARAM_PropInfo:
-                    // SPA_TYPE_OBJECT_PropInfo
-                    // spa_prop_info
-                    // SPA_PROP_INFO_*,       value
-                    // SPA_PROP_INFO_id,      SPA_POD_Id(&iid)
-                    // SPA_PROP_INFO_type,    SPA_POD_PodChoice(&type)
-                    // SPA_PROP_INFO_labels,  SPA_POD_PodStruct(&labels)) < 0)
+                // SPA_PARAM_Format => SPA_TYPE_OBJECT_Format => spa_media_type
+                foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_Format (param)) {
+                    writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
+                }
+                break;
+            case SPA_PARAM_PropInfo:
+                // SPA_TYPE_OBJECT_PropInfo
+                // spa_prop_info
+                // SPA_PROP_INFO_*,       value
+                // SPA_PROP_INFO_id,      SPA_POD_Id(&iid)
+                // SPA_PROP_INFO_type,    SPA_POD_PodChoice(&type)
+                // SPA_PROP_INFO_labels,  SPA_POD_PodStruct(&labels)) < 0)
 
-                    //uint iid;
-                    //const char* desc;
-                    //const char* name;
-                    //const spa_pod_choice* ctype;
-                    //const void* params;
-                    //uint32_t choice, n_vals, container = SPA_ID_INVALID;
+                //uint iid;
+                //const char* desc;
+                //const char* name;
+                //const spa_pod_choice* ctype;
+                //const void* params;
+                //uint32_t choice, n_vals, container = SPA_ID_INVALID;
 
-                    //import spa;
+                //import spa;
 
-                    //with (spa_prop_info)
-                    //if (spa_pod_parse_object (param,
-                    //    SPA_TYPE_OBJECT_PropInfo, null,
-                    //    SPA_PROP_INFO_id,           SPA_POD_Id(&iid),
-                    //    SPA_PROP_INFO_name ,        SPA_POD_String(&name),
-                    //    SPA_PROP_INFO_description,  SPA_POD_String(&desc),
-                    //    SPA_PROP_INFO_type,         SPA_POD_PodChoice(&ctype),
-                    //    SPA_PROP_INFO_container,    SPA_POD_Id(&container),
-                    //    //SPA_PROP_INFO_params,       SPA_POD_String(&params),
-                    //) < 0)
-                    //    printf ("-EINVAL\n");
-                    
-                    //printf ("  iid,name,desc: %d, %s, %s\n", iid, name, desc);
-                    //printf ("    type: %p, %d\n", ctype, container);
+                //with (spa_prop_info)
+                //if (spa_pod_parse_object (param,
+                //    SPA_TYPE_OBJECT_PropInfo, null,
+                //    SPA_PROP_INFO_id,           SPA_POD_Id(&iid),
+                //    SPA_PROP_INFO_name ,        SPA_POD_String(&name),
+                //    SPA_PROP_INFO_description,  SPA_POD_String(&desc),
+                //    SPA_PROP_INFO_type,         SPA_POD_PodChoice(&ctype),
+                //    SPA_PROP_INFO_container,    SPA_POD_Id(&container),
+                //    //SPA_PROP_INFO_params,       SPA_POD_String(&params),
+                //) < 0)
+                //    printf ("-EINVAL\n");
+                
+                //printf ("  iid,name,desc: %d, %s, %s\n", iid, name, desc);
+                //printf ("    type: %p, %d\n", ctype, container);
 
-                    // SPA_PARAM_PropInfo => SPA_TYPE_OBJECT_PropInfo => spa_prop_info[]
-                    foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_PropInfo (param)) {
-                        writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
-                        // SPA_PROP_INFO_id
-                        // SPA_PROP_INFO_name
-                        // SPA_PROP_INFO_description
-                        // SPA_PROP_INFO_type
-                        // ...
-                    }
-                    break;
+                // SPA_PARAM_PropInfo => SPA_TYPE_OBJECT_PropInfo => spa_prop_info[]
+                foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_PropInfo (param)) {
+                    writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
+                    // SPA_PROP_INFO_id
+                    // SPA_PROP_INFO_name
+                    // SPA_PROP_INFO_description
+                    // SPA_PROP_INFO_type
+                    // ...
+                }
+                break;
 
-                case SPA_PARAM_Props:
-                    // id == ParamType::Props:
-                    // node_param_props (&sender, object_id, param);
-                    //node_param_props (_node, id, param);
+            case SPA_PARAM_Props:
+                // id == ParamType::Props:
+                // node_param_props (&sender, object_id, param);
+                //node_param_props (_node, id, param);
 
-                    //uint iid;
-                    //uint cid;
-                    //const char* desc;
-                    //const char* name;
-                    //const float volume;
-                    //const float gain;
-                    //const bool  mute;
-                    //const uint32_t n_volumes;
-                    //const float[SPA_AUDIO_MAX_CHANNELS] volumes;
-                    //const uint32_t n_volumesm;
-                    //const float[SPA_AUDIO_MAX_CHANNELS] volumesm;
-                    //const uint32_t n_volumess;
-                    //const float[SPA_AUDIO_MAX_CHANNELS] volumess;
-                    ////const float type;
-                    //const void* params;
-                    //const bool _params;
-                    //const spa_pod_struct* labels;
-                    //const spa_pod_choice* ctype;
+                //uint iid;
+                //uint cid;
+                //const char* desc;
+                //const char* name;
+                //const float volume;
+                //const float gain;
+                //const bool  mute;
+                //const uint32_t n_volumes;
+                //const float[SPA_AUDIO_MAX_CHANNELS] volumes;
+                //const uint32_t n_volumesm;
+                //const float[SPA_AUDIO_MAX_CHANNELS] volumesm;
+                //const uint32_t n_volumess;
+                //const float[SPA_AUDIO_MAX_CHANNELS] volumess;
+                ////const float type;
+                //const void* params;
+                //const bool _params;
+                //const spa_pod_struct* labels;
+                //const spa_pod_choice* ctype;
 
-                    //if (spa_pod_parse_object (param,
-                    //    SPA_TYPE_OBJECT_Props, null,
-                    //    SPA_PROP_volume,            SPA_POD_Float(&volume),
-                    //    SPA_PROP_mute,              SPA_POD_Bool(&mute),
-                    //    //SPA_PROP_channelVolumes,    SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumes, volumes.ptr),
-                    //    //SPA_PROP_monitorVolumes,    SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumesm, volumesm.ptr),
-                    //    //SPA_PROP_softVolumes,       SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumess, volumess.ptr),
-                    //) < 0)
-                    //    printf ("    -EINVAL\n");
+                //if (spa_pod_parse_object (param,
+                //    SPA_TYPE_OBJECT_Props, null,
+                //    SPA_PROP_volume,            SPA_POD_Float(&volume),
+                //    SPA_PROP_mute,              SPA_POD_Bool(&mute),
+                //    //SPA_PROP_channelVolumes,    SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumes, volumes.ptr),
+                //    //SPA_PROP_monitorVolumes,    SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumesm, volumesm.ptr),
+                //    //SPA_PROP_softVolumes,       SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumess, volumess.ptr),
+                //) < 0)
+                //    printf ("    -EINVAL\n");
 
-                    //printf ("    volume %f\n", volume);
-                    //printf ("    mute %d\n", mute);
-                    //printf ("    channelVolumes %d\n", n_volumes);
+                //printf ("    volume %f\n", volume);
+                //printf ("    mute %d\n", mute);
+                //printf ("    channelVolumes %d\n", n_volumes);
 
-                    //dump_pod_object (param);
+                //dump_pod_object (param);
 
-                    //spa_prop[] wanted = [SPA_PROP_volume, SPA_PROP_channelVolumes, SPA_PROP_softVolumes];
-                    //static bool is_subsribed = false;
-                    //if (!is_subsribed)
-                    //if (id == 2 || Pod (param).find_any (wanted)) {
-                    //    // subscribe_params
-                    //    uint32_t[] nodes = [2];
-                    //    uint32_t*  ids = cast (uint32_t*) nodes.ptr;
-                    //    uint32_t n_ids = cast (uint32_t)  nodes.length;
-                    //    pw_node_subscribe_params (_this, ids, n_ids);
-                    //    is_subsribed = true;
-                    //}
+                //spa_prop[] wanted = [SPA_PROP_volume, SPA_PROP_channelVolumes, SPA_PROP_softVolumes];
+                //static bool is_subsribed = false;
+                //if (!is_subsribed)
+                //if (id == 2 || Pod (param).find_any (wanted)) {
+                //    // subscribe_params
+                //    uint32_t[] nodes = [2];
+                //    uint32_t*  ids = cast (uint32_t*) nodes.ptr;
+                //    uint32_t n_ids = cast (uint32_t)  nodes.length;
+                //    pw_node_subscribe_params (_this, ids, n_ids);
+                //    is_subsribed = true;
+                //}
 
-                    // SPA_PARAM_Props => SPA_TYPE_OBJECT_Props => spa_prop[]
-                    foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_Props (param)) {
-                        writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
-                    }
-                    break;
+                // SPA_PARAM_Props => SPA_TYPE_OBJECT_Props => spa_prop[]
+                foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_Props (param)) {
+                    writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
+                }
+                break;
 
-                case SPA_PARAM_IO:
-                    // SPA_PARAM_IO => SPA_TYPE_OBJECT_ParamIO => spa_param_io[]
-                    foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_ParamIO (param)) {
-                        writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
-                    }
-                    break;
+            case SPA_PARAM_IO:
+                // SPA_PARAM_IO => SPA_TYPE_OBJECT_ParamIO => spa_param_io[]
+                foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_ParamIO (param)) {
+                    writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
+                }
+                break;
 
-                case SPA_PARAM_Tag:
-                    break;
-                default:
-            }
+            case SPA_PARAM_Tag:
+                break;
+            default:
+        }
 
-            done:
+        done:
+    }
+
+    void 
+    destroy_ (Object_* o) {
+        if (o.info) {
+            pw_node_info_free (cast (pw_node_info*) o.info);
+            o.info = null;
         }
     }
 
-    static 
-    pw_node_events node_events = {
-        PW_VERSION_NODE_EVENTS,
-        info  : &node_info,
-        param : &node_param
-    };
+    void 
+    dump (Object_* o) {
+        //
+    }
 }
 
 //void

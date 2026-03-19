@@ -194,19 +194,18 @@ _Object_key_type (alias TObject) {
 // Node
 //   params
 struct
-Node_info_foreach {
-    Param    front;
-    bool     empty ()    { return length == 0; }
-    void     popFront () { front = front.next (); length--; }
-    pw_node* node;
-    const pw_node_info* _info;
-    uint32_t length;
+Node_info_params_foreach {
+    Param[]  params;
+    alias params this;
 
-    this (pw_node* node, pw_node_info* _info) {  // pw_node*
-        this.node   =  node;
-        this._info  = _info;
-        this.front  = Param (_info.params);
-        this.length = _info.n_params;
+    @disable this();
+
+    this (const spa_param_info[] params) {
+        this.params = cast (Param[]) params;
+    }
+
+    this (uint32_t n_params, const spa_param_info* params) {
+        this.params = cast (Param[]) params[0..n_params];
     }
 }
 //   props
@@ -418,15 +417,15 @@ _Prop (Key) {
 
 struct
 Param {
-    spa_param_info* _this;
+    spa_param_info _this;
     alias _this this;
 
     spa_param_type id () { return cast (spa_param_type) _this.id; }
 
-    Param
-    next () {
-        return Param (_this+1);
-    }
+    //Param
+    //next () {
+    //    return Param (_this+1);
+    //}
 }
 
 auto

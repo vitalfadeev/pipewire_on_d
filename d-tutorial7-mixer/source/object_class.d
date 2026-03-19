@@ -112,15 +112,15 @@ object_destroy (Object_* o) {
 }
 
 extern (C)
-static void
-destroy_removed (void* data) {
+void
+_destroy_removed (void* data) {
     Object_* o = cast (Object_*) data;
     pw_proxy_destroy (o.proxy);
 }
 
 extern (C)
-static void
-destroy_proxy (void* data) {
+void
+_destroy_proxy (void* data) {
     Object_* o = cast (Object_*) data;
 
     spa_hook_remove (&o.proxy_listener);
@@ -134,18 +134,54 @@ destroy_proxy (void* data) {
 }
 
 
-static pw_proxy_events proxy_events = {
+static 
+pw_proxy_events proxy_events = {
     PW_VERSION_PROXY_EVENTS,
-    removed: &destroy_removed,
-    destroy: &destroy_proxy,
+    removed: &_destroy_removed,
+    destroy: &_destroy_proxy,
 };
 
 
 // node
 extern (C)
 static void 
-node_event_info (void* data, const pw_node_info* info) {
-    //
+node_event_info (void* data, pw_node_info* info) {
+    Object_* o = cast (Object_*) data;
+    uint32_t i, changed = 0;
+    int res;
+
+    info = o.info = pw_node_info_update (o.info, info);
+    if (info is null)
+        return;
+
+    o.params   = info.params;
+    o.n_params = info.n_params;
+
+    if (info.change_mask & PW_NODE_CHANGE_MASK_STATE)
+        changed++;
+
+    if (info.change_mask & PW_NODE_CHANGE_MASK_PROPS)
+        changed++;
+
+    if (info.change_mask & PW_NODE_CHANGE_MASK_PARAMS) {
+        for (i = 0; i < info.n_params; i++) {
+            uint32_t id = info.params[i].id;
+
+            if (info.params[i].user == 0)
+                continue;
+            info.params[i].user = 0;
+
+            changed++;
+            //add_param (&o.pending_list, 0, id, null);
+            if (!(info.params[i].flags & SPA_PARAM_INFO_READ))
+                continue;
+
+            res = pw_node_enum_params (cast (pw_node*) o.proxy,
+                    ++info.params[i].seq, id, 0, -1, null);
+            if (SPA_RESULT_IS_ASYNC (res))
+                info.params[i].seq = res;
+        }
+    }
 }
 
 extern (C)
@@ -158,7 +194,8 @@ node_event_param (void* data, int seq,
     //add_param (&o.pending_list, seq, id, param);
 }
 
-static const pw_node_events node_events = {
+static const 
+pw_node_events node_events = {
     PW_VERSION_NODE_EVENTS,
     info:  &node_event_info,
     param: &node_event_param,
@@ -188,7 +225,8 @@ Class node_class = {
     name_key: PW_KEY_NODE_NAME.ptr,
 };
 
-static const Class*[] classes = [
+static const 
+Class*[] classes = [
     //&core_class,
     //&module_class,
     //&factory_class,

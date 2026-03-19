@@ -24,7 +24,7 @@ int main (int argc, char** argv) {
         // print nodex
         writeln ("Nodes: ", core.registry.nodes.length);
         foreach (node; core.registry.nodes) {
-            writeln ("  ", node.info.id, " ", node.info.n_params);
+            writeln ("  ", node._info.id, " ", node._info.n_params);
         }
     }
 
