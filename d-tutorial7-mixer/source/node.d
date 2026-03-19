@@ -99,57 +99,12 @@ Node : Pw_object {
 
         switch (id) with (spa_param_type) {
             case SPA_PARAM_Format:
-                //uint32_t media_type, media_subtype;
-                //if (spa_format_parse (param, &media_type, &media_subtype) < 0) goto done; 
-                //writefln ("  media_type: %s", cast (spa_media_type) media_type);
-                //writefln ("    %s", cast (spa_media_subtype) media_subtype);
-                //switch (media_type) with (spa_media_type) {  // and spa_media_subtype, and spa_format
-                //    case SPA_MEDIA_TYPE_audio: break;  // SPA_MEDIA_SUBTYPE_raw
-                //    case SPA_MEDIA_TYPE_video: break;
-                //    case SPA_MEDIA_TYPE_image: break;
-                //    case SPA_MEDIA_TYPE_binary: break;
-                //    case SPA_MEDIA_TYPE_stream: break;
-                //    case SPA_MEDIA_TYPE_application: break;
-                //    default:
-                //}
-
                 // SPA_PARAM_Format => SPA_TYPE_OBJECT_Format => spa_media_type
                 foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_Format (param)) {
                     writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
                 }
                 break;
             case SPA_PARAM_PropInfo:
-                // SPA_TYPE_OBJECT_PropInfo
-                // spa_prop_info
-                // SPA_PROP_INFO_*,       value
-                // SPA_PROP_INFO_id,      SPA_POD_Id(&iid)
-                // SPA_PROP_INFO_type,    SPA_POD_PodChoice(&type)
-                // SPA_PROP_INFO_labels,  SPA_POD_PodStruct(&labels)) < 0)
-
-                //uint iid;
-                //const char* desc;
-                //const char* name;
-                //const spa_pod_choice* ctype;
-                //const void* params;
-                //uint32_t choice, n_vals, container = SPA_ID_INVALID;
-
-                //import spa;
-
-                //with (spa_prop_info)
-                //if (spa_pod_parse_object (param,
-                //    SPA_TYPE_OBJECT_PropInfo, null,
-                //    SPA_PROP_INFO_id,           SPA_POD_Id(&iid),
-                //    SPA_PROP_INFO_name ,        SPA_POD_String(&name),
-                //    SPA_PROP_INFO_description,  SPA_POD_String(&desc),
-                //    SPA_PROP_INFO_type,         SPA_POD_PodChoice(&ctype),
-                //    SPA_PROP_INFO_container,    SPA_POD_Id(&container),
-                //    //SPA_PROP_INFO_params,       SPA_POD_String(&params),
-                //) < 0)
-                //    printf ("-EINVAL\n");
-                
-                //printf ("  iid,name,desc: %d, %s, %s\n", iid, name, desc);
-                //printf ("    type: %p, %d\n", ctype, container);
-
                 // SPA_PARAM_PropInfo => SPA_TYPE_OBJECT_PropInfo => spa_prop_info[]
                 foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_PropInfo (param)) {
                     writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
@@ -162,57 +117,6 @@ Node : Pw_object {
                 break;
 
             case SPA_PARAM_Props:
-                // id == ParamType::Props:
-                // node_param_props (&sender, object_id, param);
-                //node_param_props (_node, id, param);
-
-                //uint iid;
-                //uint cid;
-                //const char* desc;
-                //const char* name;
-                //const float volume;
-                //const float gain;
-                //const bool  mute;
-                //const uint32_t n_volumes;
-                //const float[SPA_AUDIO_MAX_CHANNELS] volumes;
-                //const uint32_t n_volumesm;
-                //const float[SPA_AUDIO_MAX_CHANNELS] volumesm;
-                //const uint32_t n_volumess;
-                //const float[SPA_AUDIO_MAX_CHANNELS] volumess;
-                ////const float type;
-                //const void* params;
-                //const bool _params;
-                //const spa_pod_struct* labels;
-                //const spa_pod_choice* ctype;
-
-                //if (spa_pod_parse_object (param,
-                //    SPA_TYPE_OBJECT_Props, null,
-                //    SPA_PROP_volume,            SPA_POD_Float(&volume),
-                //    SPA_PROP_mute,              SPA_POD_Bool(&mute),
-                //    //SPA_PROP_channelVolumes,    SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumes, volumes.ptr),
-                //    //SPA_PROP_monitorVolumes,    SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumesm, volumesm.ptr),
-                //    //SPA_PROP_softVolumes,       SPA_POD_Array(float.sizeof, SPA_TYPE_Float, n_volumess, volumess.ptr),
-                //) < 0)
-                //    printf ("    -EINVAL\n");
-
-                //printf ("    volume %f\n", volume);
-                //printf ("    mute %d\n", mute);
-                //printf ("    channelVolumes %d\n", n_volumes);
-
-                //dump_pod_object (param);
-
-                //spa_prop[] wanted = [SPA_PROP_volume, SPA_PROP_channelVolumes, SPA_PROP_softVolumes];
-                //static bool is_subsribed = false;
-                //if (!is_subsribed)
-                //if (id == 2 || Pod (param).find_any (wanted)) {
-                //    // subscribe_params
-                //    uint32_t[] nodes = [2];
-                //    uint32_t*  ids = cast (uint32_t*) nodes.ptr;
-                //    uint32_t n_ids = cast (uint32_t)  nodes.length;
-                //    pw_node_subscribe_params (_this, ids, n_ids);
-                //    is_subsribed = true;
-                //}
-
                 // SPA_PARAM_Props => SPA_TYPE_OBJECT_Props => spa_prop[]
                 foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_Props (param)) {
                     writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
@@ -241,43 +145,6 @@ Node : Pw_object {
     }
 }
 
-//void
-//node_param_props (void* _node, uint32_t id, spa_pod* param) {
-//    with (cast (Node) _node) {
-//        import spa_pod_parse_object;
-//        uint iid;
-//        const char* desc;
-
-//        with (spa_prop_info)
-//        _spa_pod_parse_object (param,
-//            SPA_TYPE_OBJECT_PropInfo, &id,
-//            SPA_PROP_INFO_id, SPA_POD_Id (&iid));
-
-//        spa_pod_parser _p;
-//        spa_pod_parser_pod(&_p, pod);
-//        int spa_pod_parser_get_object(&_p,type,id,##__VA_ARGS__);
-//          struct spa_pod_frame _f;
-//            pod;
-//            parent;
-//            offset;
-//            flags;
-
-//        printf ("  iid,desc: %d\n", iid);
-
-//        foreach (prop; param.properties) {
-//            switch (prop.key) with (spa_prop) {
-//                case SPA_PROP_channelVolumes:   // float
-//                    // volumes: prop.value
-//                    break;
-//                case SPA_PROP_mute:             // bool
-//                    // mute: prop.value
-//                    break;
-//                default:
-//            }
-//        }
-//    }
-//}
-
 void
 dump_pod_object (spa_pod* param) {
     // spa_pod_object
@@ -300,57 +167,4 @@ dump_pod_object (spa_pod* param) {
     // SPA_TYPE_*
     //   SPA_TYPE_OBJECT_*
     Pod (param).dump ("  ");
-
-    //if (param.type == SPA_TYPE_Object)
-    //foreach (Prop prop; Pod_object_foreach (param)) {
-    //    writefln ("      %s: %s", prop.key, prop.value_type);
-
-    //    if (prop.key == SPA_PROP_params)
-    //    if (prop.value.type == SPA_TYPE_Struct)
-    //    foreach (Pod _param; Pod_struct_foreach (prop.value)) {
-    //          writefln ("        %s", _param.as_string);
-    //    }
-    //}
 }
-
-// id
-// node id,name: 55, alsa_output.pci-0000_00_1b.0.analog-stereo
-//
-// props
-//   object.serial : "55"
-//   node.name     : "alsa_output.pci-0000_00_1b.0.analog-stereo"
-//   media.class   : "Audio/Sink"
-//
-// wpctl get-volume $node_id
-
-// pw_endpoint_info
-//   media_class
-
-// mixer_api = wp_plugin_find (core, "mixer-api");
-// WpPlugin * wp_plugin_find (WpCore * core, const gchar * plugin_name);
-//  wp_core_find_object (core, find_plugin_func, data)
-//    wp_plugin_get_instance_private
-//      .name_quark == "mixer-api"
-//
-// wp_core_find_object
-//   foreach obj; core.objs
-//     if find_plugin_func()
-//       return obj
-
-// collect_node_info
-//   iter = wp_pipewire_object_enum_params_sync
-//     foreach param; iter
-//       node_info_fill param
-//         wp_spa_pod_get_object
-//           mute
-//           channelVolumes
-
-//wp_spa_pod_get_object (props, NULL,
-//    "channelMap", "?P", &channelMap,
-//    "volumeBase", "?f", &info->base,
-//    "volumeStep", "?f", &info->step,
-//    "volume",     "?f", &info->svolume,
-//    "monitorVolumes", "?P", &monitorVolumes,
-//    "monitorMute", "?b", &info->monitorMute,
-//    NULL);
-

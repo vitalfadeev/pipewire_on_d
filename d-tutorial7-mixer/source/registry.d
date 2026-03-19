@@ -93,17 +93,20 @@ Registry {
             if (node !is null)
                 nodes ~= node;
         }
-        //else
-        //// Client
-        //if (strcmp (type, Client.klass.type) == 0) {
-        //    //if (client is null)
-        //    clients ~= bind!Client (id,type);
-        //}
-        //else
-        //// Device
-        //if (strcmp (type, Device.klass.type) == 0) {
-        //    devices ~= bind!Device (id,type);
-        //}
+        else
+        // Client
+        if (strcmp (type, Client.klass.type) == 0) {
+            auto client = bind!Client (id, permissions, type, version_, props);
+            if (client !is null)
+                clients ~= client;
+        }
+        else
+        // Device
+        if (strcmp (type, Device.klass.type) == 0) {
+            auto device = bind!Device (id, permissions, type, version_, props);
+            if (device !is null)
+                devices ~= device;
+        }
         //else
         //// Module
         //if (strcmp (type, PW_TYPE_INTERFACE_Module) == 0) {

@@ -11,9 +11,7 @@ import std.conv : to;
 class
 Device : Pw_object {
     pw_device*    _this () { return cast (pw_device*) proxy; }  // alias to proxy
-    Core           core;
     string[]       params;
-    spa_hook       listener;
     //
     static
     Klass          klass = {

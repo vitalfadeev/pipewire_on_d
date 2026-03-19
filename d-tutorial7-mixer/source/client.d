@@ -9,8 +9,6 @@ import klass;
 class
 Client : Pw_object {
     pw_client*    _this () { return cast (pw_client*) proxy; }  // alias to proxy
-    Core           core;
-    spa_hook       listener;
     //
     static
     Klass          klass = {
