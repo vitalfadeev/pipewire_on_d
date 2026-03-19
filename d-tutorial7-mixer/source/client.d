@@ -10,13 +10,10 @@ class
 Client : Pw_object {
     pw_client*    _this () { return cast (pw_client*) proxy; }  // alias to proxy
     //
-    static
-    Klass          klass = {
-        type:          PW_TYPE_INTERFACE_Client,
-        version_:      PW_VERSION_CLIENT,
-        events:        &events,
-        name_key:      PW_KEY_CLIENT_NAME.ptr,
-    };
+    enum klass_type     = PW_TYPE_INTERFACE_Client;
+    enum klass_version_ = PW_VERSION_CLIENT;
+    enum klass_events   = &events;
+    enum klass_name_key = PW_KEY_CLIENT_NAME.ptr;
     __gshared
     pw_client_events events = {
         PW_VERSION_CLIENT_EVENTS,
@@ -25,7 +22,6 @@ Client : Pw_object {
 
     this (Core core, uint32_t id, uint32_t permissions, const char*  type, uint32_t version_, const spa_dict* props)  {
         super (core, id, permissions, type, version_, props);
-        _klass = &klass;
     }
 
     ~this () {

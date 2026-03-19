@@ -13,10 +13,12 @@ Core {
     Registry       registry;
     int            sync_seq;
     bool           monitor;
+    spa_list       object_list;
 
     this (pw_core* _this, Context context) {
         this._this   = _this;
         this.context = context;
+        spa_list_init (&object_list);
     }
 
     Registry

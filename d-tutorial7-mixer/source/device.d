@@ -13,12 +13,10 @@ Device : Pw_object {
     pw_device*    _this () { return cast (pw_device*) proxy; }  // alias to proxy
     //
     static
-    Klass          klass = {
-        type:          PW_TYPE_INTERFACE_Device,
-        version_:      PW_VERSION_DEVICE,
-        events:        &events,
-        name_key:      PW_KEY_DEVICE_NAME.ptr,
-    };
+    enum klass_type     = PW_TYPE_INTERFACE_Device;
+    enum klass_version_ = PW_VERSION_DEVICE;
+    enum klass_events   = &events;
+    enum klass_name_key = PW_KEY_DEVICE_NAME.ptr;
     __gshared
     pw_device_events events = {
         PW_VERSION_DEVICE_EVENTS,
@@ -29,7 +27,6 @@ Device : Pw_object {
 
     this (Core core, uint32_t id, uint32_t permissions, const char*  type, uint32_t version_, const spa_dict* props)  {
         super (core, id, permissions, type, version_, props);
-        _klass = &klass;
     }
 
     ~this () {

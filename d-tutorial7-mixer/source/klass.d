@@ -4,13 +4,13 @@ import spa;
 import core_;
 
 
-struct 
-Klass {
-    const char* type;
-    uint32_t    version_;
-    const void* events;
-    const char* name_key;
-};
+//struct 
+//Klass {
+//    const char* type;
+//    uint32_t    version_;
+//    const void* events;
+//    const char* name_key;
+//};
 
 
 struct 
@@ -51,12 +51,14 @@ class Pw_object : Pw_proxy {
     uint32_t        permissions;
     char*           type;
     uint32_t        version_;
-    pw_properties*  props;
+    pw_properties*  props;   // from registry.global ()
 
-    Klass*         _klass;
+    //const void*     klass_events;
+    //Klass*         _klass;
     void*           info; // pw_device_info* | pw_node_info*
     spa_param_info* params;
     uint32_t        n_params;
+    //Param_info[]    params;  // from node.info (), node_param ()
 
     int             changed;
     spa_list        param_list;
@@ -76,6 +78,10 @@ class Pw_object : Pw_proxy {
         this.type        = strdup (type);
         this.version_    = version_;
         this.props       = props ? pw_properties_new_dict (cast (spa_dict*) props) : null;
+        spa_list_init (&this.param_list);
+        spa_list_init (&this.pending_list);
+        spa_list_init (&this.data_list);
+        spa_list_append (&core.object_list, &this.link);
     }
 
     extern (C)
@@ -87,10 +93,8 @@ class Pw_object : Pw_proxy {
     void
     destroy_proxy (void* data) {
         spa_hook_remove (&proxy_listener);
-        if (_klass !is null) {
-            if (_klass.events)
-                spa_hook_remove (&object_listener);
-        }
+        //if (klass.events)
+            spa_hook_remove (&object_listener);
         proxy = null;
     }
 
@@ -106,3 +110,11 @@ class Pw_object : Pw_proxy {
         //
     }
 }
+
+struct 
+Struct_param {
+    uint32_t id;
+    int32_t  seq;
+    spa_list link;
+    spa_pod* param;
+};

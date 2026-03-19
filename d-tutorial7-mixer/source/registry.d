@@ -45,15 +45,15 @@ Registry {
     {
         auto o = new T (core, id, permissions, type, version_, props);
 
-        if (T.klass.events !is null) {
-            o.proxy = cast (pw_proxy*) pw_registry_bind (_this, id, type, T.klass.version_, 0);
+        if (T.klass_events !is null) {
+            o.proxy = cast (pw_proxy*) pw_registry_bind (_this, id, type, T.klass_version_, 0);
 
             if (o.proxy !is null) {
             bind_ok:
                 pw_proxy_add_listener (o.proxy, &o.proxy_listener, &o.proxy_events, cast (void*) o);
 
-                if (T.klass.events)
-                    pw_proxy_add_object_listener (o.proxy, &o.object_listener, T.klass.events, cast (void*) o);
+                if (T.klass_events)
+                    pw_proxy_add_object_listener (o.proxy, &o.object_listener, T.klass_events, cast (void*) o);
                 else
                     o.changed++;
 
@@ -81,32 +81,28 @@ Registry {
         //printf ("  type: %s\n", type);
 
         // Node
-        if (strcmp (type, Node.klass.type) == 0) {
+        if (strcmp (type, Node.klass_type) == 0) {
             auto name = __find_node_name (cast (spa_dict*) props);
             printf ("registry\n");
-            printf ("node id,name: %u, %s\n", id,name);
-            printf ("  props: ");
-            foreach (item; spa_dict_for_each (props))  // spa_dict_item* item
-                printf ("    %s: \"%s\"\n", item.key, item.value);
 
             auto node = bind!Node (id, permissions, type, version_, props);
             if (node !is null)
                 nodes ~= node;
         }
-        else
-        // Client
-        if (strcmp (type, Client.klass.type) == 0) {
-            auto client = bind!Client (id, permissions, type, version_, props);
-            if (client !is null)
-                clients ~= client;
-        }
-        else
-        // Device
-        if (strcmp (type, Device.klass.type) == 0) {
-            auto device = bind!Device (id, permissions, type, version_, props);
-            if (device !is null)
-                devices ~= device;
-        }
+        //else
+        //// Client
+        //if (strcmp (type, Client.klass_type) == 0) {
+        //    auto client = bind!Client (id, permissions, type, version_, props);
+        //    if (client !is null)
+        //        clients ~= client;
+        //}
+        //else
+        //// Device
+        //if (strcmp (type, Device.klass_type) == 0) {
+        //    auto device = bind!Device (id, permissions, type, version_, props);
+        //    if (device !is null)
+        //        devices ~= device;
+        //}
         //else
         //// Module
         //if (strcmp (type, PW_TYPE_INTERFACE_Module) == 0) {

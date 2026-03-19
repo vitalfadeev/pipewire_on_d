@@ -8,6 +8,7 @@ import core.stdc.stdarg;
 import spa_list;
 import std.conv : to;
 import std.string : fromStringz;
+import std.format : format;
 
 
 auto
@@ -42,7 +43,8 @@ spa_pod_parse_object (POD,TYPE,ID,ARGS...) (POD pod,TYPE type,ID id, ARGS args) 
 //    }
 //}
 
-auto removeConst (T) (T value) {
+auto 
+removeConst (T) (T value) {
     static if (is (T == const U, U)) {
         return cast (U) value;
     } else {
@@ -68,6 +70,66 @@ _spa_dict_for_each (DICT,ITEMS) {
         this.dict  = dict;
         this.front = items;
     }
+}
+
+auto
+spa_list_for_each_safe (alias pos, alias tmp, alias head, string member) () {
+    alias POS  = typeof (pos);
+    alias TMP  = typeof (tmp);
+    alias CURR = typeof (head);
+    alias HEAD = typeof (head);
+    return spa_list_for_each_safe_next!(POS,TMP,CURR,HEAD,member) (pos,tmp,head,head);
+}
+
+struct
+spa_list_for_each_safe_next (POS,TMP,CURR,HEAD,string member) {
+    POS   front;
+    TMP   tmp;
+    HEAD  head;
+    alias pos = front;
+    bool empty () {
+        (tmp) = spa_list_next!member (pos);
+        return spa_list_is_end!member (pos, head);
+    }
+    void popFront () {
+        (front) = (tmp);
+    }
+
+    this (POS pos,TMP tmp, CURR curr, HEAD head) {
+        this.front = spa_list_first!(typeof (*(pos)), member) (curr);
+        this.tmp   = tmp;
+        this.head  = head;
+    }
+}
+
+auto
+spa_list_first (TYPE, string member, HEAD) (HEAD head) {
+    return SPA_CONTAINER_OF!(TYPE, member) ((head).next);
+}
+
+//template
+//spa_list_next (alias pos, string member) {
+//    enum spa_list_next = _spa_list_next!member (pos);
+//}
+
+auto
+spa_list_next (string member, POS) (POS pos) {
+    return SPA_CONTAINER_OF!(typeof(*(pos)), member) (mixin ("(pos)."~member~".next"));
+}
+
+//auto
+//spa_list_append (LIST,ITEM) (LIST list, ITEM item) {
+//    spa_list_insert ((list).prev, item);
+//}
+
+auto
+SPA_CONTAINER_OF (TYPE, string member, P) (P p) {
+    return (cast (TYPE*) (cast (uintptr_t) (p) - mixin ("TYPE."~member~".offsetof")));
+}
+
+auto
+spa_list_is_end (string member, POS, HEAD) (POS pos, HEAD head) {
+    return mixin ("&(pos)."~member~" == (head)");
 }
 
 
@@ -174,21 +236,21 @@ enum SPA_POD_PROP_FLAG_HINT_DICT = (1u<<2);
 
 template
 _Object_key_type (alias TObject) {
-    static if (TObject == SPA_TYPE_OBJECT_Props)               alias _Object_key_type = spa_prop;
-    static if (TObject == SPA_TYPE_OBJECT_ParamRoute)          alias _Object_key_type = spa_param_route;
-    static if (TObject == SPA_TYPE_OBJECT_ParamTag)            alias _Object_key_type = spa_param_tag;
-    static if (TObject == SPA_TYPE_OBJECT_ParamBuffers)        alias _Object_key_type = spa_param_buffers;
-    static if (TObject == SPA_TYPE_OBJECT_ParamMeta)           alias _Object_key_type = spa_param_meta;
-    static if (TObject == SPA_TYPE_OBJECT_ParamIO)             alias _Object_key_type = spa_param_io;
-    static if (TObject == SPA_TYPE_OBJECT_ParamDict)           alias _Object_key_type = spa_param_dict;
-    static if (TObject == SPA_TYPE_OBJECT_Format)              alias _Object_key_type = spa_media_type;
-    static if (TObject == SPA_TYPE_OBJECT_ParamLatency)        alias _Object_key_type = spa_param_latency;
-    static if (TObject == SPA_TYPE_OBJECT_ParamProcessLatency) alias _Object_key_type = spa_param_process_latency;
-    static if (TObject == SPA_TYPE_OBJECT_PeerParam)           alias _Object_key_type = spa_peer_param;
-    static if (TObject == SPA_TYPE_OBJECT_ParamPortConfig)     alias _Object_key_type = spa_param_port_config;
-    static if (TObject == SPA_TYPE_OBJECT_ParamProfile)        alias _Object_key_type = spa_param_profile  ;
-    static if (TObject == SPA_TYPE_OBJECT_Profiler)            alias _Object_key_type = spa_profiler;
-    static if (TObject == SPA_TYPE_OBJECT_PropInfo)            alias _Object_key_type = spa_prop_info;
+    static if (TObject == spa_type.SPA_TYPE_OBJECT_Props)               alias _Object_key_type = spa_prop;
+    static if (TObject == spa_type.SPA_TYPE_OBJECT_ParamRoute)          alias _Object_key_type = spa_param_route;
+    static if (TObject == spa_type.SPA_TYPE_OBJECT_ParamTag)            alias _Object_key_type = spa_param_tag;
+    static if (TObject == spa_type.SPA_TYPE_OBJECT_ParamBuffers)        alias _Object_key_type = spa_param_buffers;
+    static if (TObject == spa_type.SPA_TYPE_OBJECT_ParamMeta)           alias _Object_key_type = spa_param_meta;
+    static if (TObject == spa_type.SPA_TYPE_OBJECT_ParamIO)             alias _Object_key_type = spa_param_io;
+//    static if (TObject == spa_type.SPA_TYPE_OBJECT_ParamDict)           alias _Object_key_type = spa_param_dict;
+    static if (TObject == spa_type.SPA_TYPE_OBJECT_Format)              alias _Object_key_type = spa_media_type;
+    static if (TObject == spa_type.SPA_TYPE_OBJECT_ParamLatency)        alias _Object_key_type = spa_param_latency;
+    static if (TObject == spa_type.SPA_TYPE_OBJECT_ParamProcessLatency) alias _Object_key_type = spa_param_process_latency;
+//    static if (TObject == spa_type.SPA_TYPE_OBJECT_PeerParam)           alias _Object_key_type = spa_peer_param;
+    static if (TObject == spa_type.SPA_TYPE_OBJECT_ParamPortConfig)     alias _Object_key_type = spa_param_port_config;
+    static if (TObject == spa_type.SPA_TYPE_OBJECT_ParamProfile)        alias _Object_key_type = spa_param_profile  ;
+    static if (TObject == spa_type.SPA_TYPE_OBJECT_Profiler)            alias _Object_key_type = spa_profiler;
+    static if (TObject == spa_type.SPA_TYPE_OBJECT_PropInfo)            alias _Object_key_type = spa_prop_info;
 }
 
 // Node
@@ -242,7 +304,7 @@ Pod_struct_foreach {  // SPA_POD_STRUCT_FOREACH
 
     this (spa_pod* pod) {
         this.pod_struct = Pod (pod);
-        this.front      = Pod (SPA_POD_BODY (pod));
+        this.front      = Pod (cast (spa_pod*) SPA_POD_BODY (pod));
     }
 }
 
@@ -257,7 +319,7 @@ Pod_array_foreach {  // SPA_POD_ARRAY_FOREACH, SPA_POD_ARRAY_BODY_FOREACH
 
     this (spa_pod* pod) {
         this.pod_array = Pod (pod);
-        this.front     = Pod (SPA_POD_BODY (pod));
+        this.front     = Pod (cast (spa_pod*) SPA_POD_BODY (pod));
     }
 }
 
@@ -285,6 +347,13 @@ Pod {
     find_any (spa_prop[] key) {  // SPA_PROP_volume, SPA_PROP_channelVolumes, SPA_PROP_softVolumes
         return false;
     }
+
+    //Pod
+    //copy () {
+    //    auto _p = cast (spa_pod*) malloc (SPA_POD_SIZE (_this));
+    //    memcpy (_p, _this, SPA_POD_SIZE (_this));
+    //    return Pod (_p);
+    //}
 
     string
     as_string () {
@@ -324,7 +393,55 @@ Pod {
                 }
                 s ~= "]";
                 return s;
-            //case SPA_TYPE_OBJECT_Props    : return "?";
+
+                
+            case SPA_TYPE_Object    : 
+                string s;
+                s ~= "[\n    ";
+
+                auto obj = cast (spa_pod_object*) _this;
+
+                switch (obj.body.id) with (spa_param_type) {
+                    case SPA_PARAM_Format:
+                        // SPA_PARAM_Format => SPA_TYPE_OBJECT_Format => spa_media_type
+                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_Format) (obj)) {
+                            if (s.length > 7) s ~= ",\n    ";
+                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
+                        }
+                        break;
+                    case SPA_PARAM_PropInfo:
+                        // SPA_PARAM_PropInfo => SPA_TYPE_OBJECT_PropInfo => spa_prop_info[]
+                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_PropInfo) (obj)) {
+                            if (s.length > 7) s ~= ",\n    ";
+                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
+                        }
+                        break;
+
+                    case SPA_PARAM_Props:
+                        // SPA_PARAM_Props => SPA_TYPE_OBJECT_Props => spa_prop[]
+                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_Props) (obj)) {
+                            if (s.length > 7) s ~= ",\n    ";
+                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
+                        }
+                        break;
+
+                    case SPA_PARAM_IO:
+                        // SPA_PARAM_IO => SPA_TYPE_OBJECT_ParamIO => spa_param_io[]
+                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_ParamIO) (obj)) {
+                            if (s.length > 7) s ~= ",\n    ";
+                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
+                        }
+                        break;
+
+                    case SPA_PARAM_Tag:
+                        break;
+
+                    default:
+                }
+
+                s ~= "]";
+                return s;
+
             //case SPA_TYPE_OBJECT_Format   : return "?";
             default                       :
                 return "? ("~(cast (spa_type) _this.type).to!string~")";
@@ -345,7 +462,7 @@ Pod {
     _parse_PropInfo () {
         uint32_t iid;
 
-        foreach (/*Prop*/ prop; Pod_object_foreach!SPA_TYPE_OBJECT_PropInfo (_this)) {
+        foreach (/*Prop*/ prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_PropInfo) (_this)) {
             writefln ("  %s: %s", prop.key, prop.value_type);
             switch (prop.key) with (spa_prop_info) {
                 case SPA_PROP_INFO_id : break;
@@ -353,7 +470,7 @@ Pod {
             }
         }
 
-        spa_pod* info = SPA_POD_BODY (_this);
+        spa_pod* info = cast (spa_pod*) SPA_POD_BODY (_this);
     }
 
     void
@@ -428,14 +545,30 @@ Param {
     //}
 }
 
+struct
+Param_info {
+    int      seq;
+    uint32_t id;
+    //uint32_t index;
+    //uint32_t next;
+    Pod      param;
+}
+
+//auto
+//SPA_PTROFF (T,BASE) (BASE* base, size_t offset) {
+//    return cast (T*) (base + offset);
+//}
+
 auto
-SPA_PTROFF (T,BASE) (BASE* base, size_t offset) {
-    return cast (T*) (base + offset);
+SPA_PTROFF (alias ptr_, alias offset_, alias type_) () {
+    alias uintptr_t = void*;
+    alias ptrdiff_t = size_t;
+    return (cast (type_*) (cast (uintptr_t) (ptr_) + cast (ptrdiff_t) (offset_)));
 }
 
 auto
 SPA_POD_BODY (spa_pod* pod) {
-    return SPA_PTROFF!spa_pod (pod,1);
+    return SPA_PTROFF!((pod), (spa_pod).sizeof, void) ();
 }
 
 auto
