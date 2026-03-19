@@ -25,6 +25,7 @@ Client : Pw_object {
 
     this (Core core, uint32_t id, uint32_t permissions, const char*  type, uint32_t version_, const spa_dict* props)  {
         super (core, id, permissions, type, version_, props);
+        _klass = &klass;
     }
 
     ~this () {

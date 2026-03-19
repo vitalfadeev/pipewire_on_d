@@ -11,7 +11,6 @@ import std.conv : to;
 class
 Device : Pw_object {
     pw_device*    _this () { return cast (pw_device*) proxy; }  // alias to proxy
-    string[]       params;
     //
     static
     Klass          klass = {
@@ -30,6 +29,7 @@ Device : Pw_object {
 
     this (Core core, uint32_t id, uint32_t permissions, const char*  type, uint32_t version_, const spa_dict* props)  {
         super (core, id, permissions, type, version_, props);
+        _klass = &klass;
     }
 
     ~this () {
@@ -50,7 +50,6 @@ Device : Pw_object {
 
         for (auto i = 0; i < n; i++) {
             writefln ("\t\t%2d: %s", ps[i].id, cast (spa_param_type) ps[i].id);
-            params ~= (cast (spa_param_type) ps[i].id).to!string;
 
             if (!SPA_FLAG_IS_SET (ps[i].flags, SPA_PARAM_INFO_READ)) continue;
 

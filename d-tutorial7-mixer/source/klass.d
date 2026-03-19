@@ -53,7 +53,7 @@ class Pw_object : Pw_proxy {
     uint32_t        version_;
     pw_properties*  props;
 
-    Klass*          klass;
+    Klass*         _klass;
     void*           info; // pw_device_info* | pw_node_info*
     spa_param_info* params;
     uint32_t        n_params;
@@ -87,8 +87,8 @@ class Pw_object : Pw_proxy {
     void
     destroy_proxy (void* data) {
         spa_hook_remove (&proxy_listener);
-        if (klass !is null) {
-            if (klass.events)
+        if (_klass !is null) {
+            if (_klass.events)
                 spa_hook_remove (&object_listener);
         }
         proxy = null;

@@ -1,6 +1,8 @@
 import importc;
 import context;
 import std.stdio : writeln;
+import spa;
+import std.stdio : writefln;
 
 
 extern (C)
@@ -22,9 +24,57 @@ int main (int argc, char** argv) {
         //core.main_loop_run ();
 
         // print nodex
-        writeln ("Nodes: ", core.registry.nodes.length);
+        writeln ("Node s: ", core.registry.nodes.length);
         foreach (node; core.registry.nodes) {
-            writeln ("  ", node._info.id, " ", node._info.n_params);
+            writefln ("%2d", node.id);
+
+            // params
+            if (node.info !is null) {
+                with (cast (pw_node_info*) node.info)
+                foreach (ref Param param; Node_info_params_foreach (n_params,params)) {
+                    writefln ("  %2d: %s", param.id, param.id);
+
+                    // props
+                    //switch (id) with (spa_param_type) {
+                    //    case SPA_PARAM_Format:
+                    //        // SPA_PARAM_Format => SPA_TYPE_OBJECT_Format => spa_media_type
+                    //        foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_Format (param)) {
+                    //            writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
+                    //        }
+                    //        break;
+                    //    case SPA_PARAM_PropInfo:
+                    //        // SPA_PARAM_PropInfo => SPA_TYPE_OBJECT_PropInfo => spa_prop_info[]
+                    //        foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_PropInfo (param)) {
+                    //            writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
+                    //            // SPA_PROP_INFO_id
+                    //            // SPA_PROP_INFO_name
+                    //            // SPA_PROP_INFO_description
+                    //            // SPA_PROP_INFO_type
+                    //            // ...
+                    //        }
+                    //        break;
+
+                    //    case SPA_PARAM_Props:
+                    //        // SPA_PARAM_Props => SPA_TYPE_OBJECT_Props => spa_prop[]
+                    //        foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_Props (param)) {
+                    //            writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
+                    //        }
+                    //        break;
+
+                    //    case SPA_PARAM_IO:
+                    //        // SPA_PARAM_IO => SPA_TYPE_OBJECT_ParamIO => spa_param_io[]
+                    //        foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_ParamIO (param)) {
+                    //            writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
+                    //        }
+                    //        break;
+
+                    //    case SPA_PARAM_Tag:
+                    //        break;
+                    //    default:
+                    //}
+
+                }
+            }
         }
     }
 

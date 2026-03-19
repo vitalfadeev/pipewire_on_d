@@ -120,37 +120,6 @@ Registry {
         //else {
         //    return;
         //}
-
-    //    //
-    //    with (cast (Ctx) ctx)
-    //    proxy = pw_registry_bind (
-    //        registry, id, type,
-    //        client_version,
-    //        proxy_data.sizeof
-    //    );
-
-    //    if (proxy is null)
-    //        goto no_mem;
-
-    //    pd = pw_proxy_get_user_data(proxy);
-    //    pd.data        = d;
-    //    pd.first       = true;
-    //    pd.proxy       = proxy;
-    //    pd.id          = id;
-    //    pd.permissions = permissions;
-    //    pd.version     = version;
-    //    pd.type        = strdup(type);
-    //    pd.destroy     = destroy;
-    //    pd.pending_seq = 0;
-    //    pd.print_func  = print_func; 
-    //    spa_list_init (&pd.param_list);
-    //    pw_proxy_add_object_listener (proxy, &pd.object_listener, events, pd);
-    //    pw_proxy_add_listener (proxy, &pd.proxy_listener, &proxy_events, pd);
-    //    spa_list_append (&d.global_list, &pd.global_link);
-
-    //no_mem:
-    //    fprintf (stderr, "failed to create proxy");
-    //    return;
     }
 
     static 

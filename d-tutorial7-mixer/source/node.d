@@ -11,8 +11,6 @@ import klass;
 class
 Node : Pw_object {
     pw_node*      _this () { return cast (pw_node*) proxy; }  // alias to proxy
-    pw_node_info  _info;
-    string[]       params;
     //
     static __gshared
     Klass          klass = {
@@ -30,6 +28,7 @@ Node : Pw_object {
 
     this (Core core, uint32_t id, uint32_t permissions, const char*  type, uint32_t version_, const spa_dict* props)  {
         super (core, id, permissions, type, version_, props);
+        _klass = &klass;
     }
 
     ~this () {
@@ -47,7 +46,7 @@ Node : Pw_object {
         printf ("node_info: id: %u\n", _info.id);
         printf ("\tparams: %u\n", _info.n_params);
 
-        this._info = cast (pw_node_info) (*_info); // props
+        info = cast (void*) pw_node_info_update (cast (pw_node_info*) info, cast (pw_node_info*) _info);
 
         foreach (ref Param param; Node_info_params_foreach (_info.n_params, _info.params)) {
             auto id_name = param.id.to!string.toStringz;
@@ -95,47 +94,14 @@ Node : Pw_object {
         printf ("node_param: id:%u\n", id);
         writefln ("  %s", cast (spa_param_type) id);
 
-        if (param is null) goto done;
-
-        switch (id) with (spa_param_type) {
-            case SPA_PARAM_Format:
-                // SPA_PARAM_Format => SPA_TYPE_OBJECT_Format => spa_media_type
-                foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_Format (param)) {
-                    writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
-                }
-                break;
-            case SPA_PARAM_PropInfo:
-                // SPA_PARAM_PropInfo => SPA_TYPE_OBJECT_PropInfo => spa_prop_info[]
-                foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_PropInfo (param)) {
-                    writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
-                    // SPA_PROP_INFO_id
-                    // SPA_PROP_INFO_name
-                    // SPA_PROP_INFO_description
-                    // SPA_PROP_INFO_type
-                    // ...
-                }
-                break;
-
-            case SPA_PARAM_Props:
-                // SPA_PARAM_Props => SPA_TYPE_OBJECT_Props => spa_prop[]
-                foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_Props (param)) {
-                    writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
-                }
-                break;
-
-            case SPA_PARAM_IO:
-                // SPA_PARAM_IO => SPA_TYPE_OBJECT_ParamIO => spa_param_io[]
-                foreach (prop; Pod_object_foreach!SPA_TYPE_OBJECT_ParamIO (param)) {
-                    writefln ("\t\tkey: %25s: %s", prop.key, prop.value.as_string); 
-                }
-                break;
-
-            case SPA_PARAM_Tag:
-                break;
-            default:
+        if (param !is null) {
+            //add_param (params, seq, id, param);  // malloc (pod.size)
         }
+    }
 
-        done:
+    void
+    add_param (spa_list* params, int seq, uint32_t id, const spa_pod* param) {
+        // props
     }
 
     override
