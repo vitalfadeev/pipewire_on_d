@@ -28,6 +28,15 @@ int main (int argc, char** argv) {
         foreach (node; core.registry.nodes) {
             writefln ("%2d", node.id);
 
+            import klass;
+            alias Struct_param_list = Spa_list!(Struct_param,"link");
+            auto lst = cast (Struct_param_list*) &node.pending_list;
+
+            foreach (p; lst.for_each_safe) {
+                if (p.param !is null)
+                    writeln ("OK ", (cast (Pod2*) p.param).as_string);
+            }
+
             // info: params_info
             //if (node.info !is null) {
             //    with (cast (pw_node_info*) node.info) {
@@ -159,3 +168,129 @@ int main (int argc, char** argv) {
 //   events
 //      info
 //
+
+// pw-cli ls Device
+// ...
+//id 48, type PipeWire:Interface:Device/3
+//    object.serial = "48"
+//    factory.id = "15"
+//    client.id = "47"
+//    device.api = "alsa"
+//    device.description = "Встроенное аудио"
+//    device.name = "alsa_card.pci-0000_00_1b.0"
+//    device.nick = "HDA Intel PCH"
+//    media.class = "Audio/Device"      <--------------------------------
+//    object.path = "alsa:acp:PCH"
+// ...
+
+// pw-cli e 48 Route
+// ...
+//Prop: key Spa:Pod:Object:Param:Route:props (10), flags 00000000
+//  Object: size 200, type Spa:Pod:Object:Param:Props (262146), id Spa:Enum:ParamId:Route (13)
+//    Prop: key Spa:Pod:Object:Param:Props:mute (65540), flags 00000002
+//      Bool false
+//    Prop: key Spa:Pod:Object:Param:Props:channelVolumes (65544), flags 00000002
+//      Array: child.size 4, child.type Spa:Float
+//        Float 0,752141  <-----------------------------------------------
+//        Float 0,713230
+// ...
+//Object: size 848, type Spa:Pod:Object:Param:Route (262153), id Spa:Enum:ParamId:Route (13)
+//    Prop: key Spa:Pod:Object:Param:Route:index (1), flags 00000000
+//      Int 2  <----------------------------------------------------------
+//
+// ...
+//Prop: key Spa:Pod:Object:Param:Route:device (3), flags 00000000
+//  Int 4      <----------------------------------------------------------
+
+// set volume
+// pw-cli s 48 Route \
+//  '{ index:  <route-index>, 
+//     device: <card-profile-device>, 
+//     props: { mute: false, channelVolumes: [ 0.5, 0.5 ] }, save: true 
+//   }'
+
+// pw-cli s 48 Route '{ index: 2, device: 4,  props: { mute: false, channelVolumes: [ 0.1, 0.1 ] }, save: true }'
+
+// pw-cli e <node-id> Props
+// pw-cli s <node-id> Props '{ mute: false, channelVolumes: [ 0.3, 0.3 ] }'
+
+enum doc = "
+  Pw_graph              Pw_graph
+    Node                  Node
+   Source                 Sink
+  |      |              |      |
+port     |            port     |
+port     |            port     |
+port     |            port     |
+  |     port - link - port     |
+  |      |              |      |
+   ------                ------
+";
+
+enum doc2 = "
+           ALSA
+           Sink
+         |      |
+front-left      |
+front-right     |
+         |      |
+          ------
+
+           ALSA
+          Source
+         |      |
+         |     front-left
+         |     front-right
+         |      |
+          ------
+";
+
+enum doc3 = "
+  Client - UNIX socket - Server
+";
+
+enum doc4 = "
+  Node
+";
+
+enum doc5 = "
+Session manager
+  Object
+    parameters    - Sample rates, Channel count, Sample format, Available monitor ports
+    properties    - attached from Modules. object type => properties
+    methods
+    events
+    permissions   - object_ID and 4 flags: Read, Write, eXecute, Metadata, Link
+      Read     : the object can be seen and events can be received;
+      Write    : the object can be modified, usually through methods (which requires the execute flag)
+      eXecute  : methods can be called;
+      Metadata : metadata can be set on the object.
+      Link     : any link can be made even to a port that is not visible by the owner of the port.
+";
+
+
+enum doc6 = "
+Object types
+  Core
+  Client
+  Module
+  Node
+    process
+    (dsp port or passthrough port)
+  Port
+    dsp: one port for channel, 32-bit floating point. 
+    passthrough: one port for multichannel data
+  Link
+    passive / active
+  Device
+    id
+    // profile
+  Factory
+  Context
+    // create context by reading config
+
+  Pw_object
+    add_listener
+";
+
+

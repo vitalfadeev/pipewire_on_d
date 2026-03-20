@@ -107,6 +107,16 @@ Node : Pw_object {
         //}
     }
 
+    extern (C)
+    void
+    param_event (/*void* _node, */int seq, uint32_t id, uint32_t index, uint32_t next, spa_pod* param) {
+        //printf ("node\n");
+        //printf ("node_param: id:%u\n", id);
+        //writefln ("  %s", cast (spa_param_type) id);
+
+        add_param (&pending_list, seq, id, param);
+    }
+
     void
     _enum_params (spa_param_type id) {
         //if (info.params[i].user == 0) continue;
@@ -120,16 +130,6 @@ Node : Pw_object {
         core.sync ();
 
         //ps[i].user = 0;        
-    }
-
-    extern (C)
-    void
-    param_event (/*void* _node, */int seq, uint32_t id, uint32_t index, uint32_t next, spa_pod* param) {
-        //printf ("node\n");
-        //printf ("node_param: id:%u\n", id);
-        //writefln ("  %s", cast (spa_param_type) id);
-
-        add_param(&pending_list, seq, id, param);
     }
 
     Struct_param*
@@ -165,11 +165,12 @@ Node : Pw_object {
 
     uint32_t 
     clear_params (spa_list* param_list, uint32_t id) {
-        Struct_param* p_;
-        Struct_param* t_;
         uint32_t count = 0;
+        alias Struct_param_list = Spa_list!(Struct_param,"link");
+        auto _list = cast (Struct_param_list*) (param_list);
 
-        foreach (Struct_param* p; spa_list_for_each_safe!(p_, t_, param_list, "link")) {
+        //foreach (Struct_param* p; spa_list_for_each_safe!(p_, t_, param_list, "link")) {
+        foreach (p; _list.for_each_safe) {
             if (id == SPA_ID_INVALID || p.id == id) {
                 spa_list_remove (&p.link);
                 free (p);

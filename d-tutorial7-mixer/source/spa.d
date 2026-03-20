@@ -5,7 +5,6 @@ import interfaces;
 import std.stdio : writeln;
 import std.stdio : writefln;
 import core.stdc.stdarg;
-import spa_list;
 import std.conv : to;
 import std.string : fromStringz;
 import std.format : format;
@@ -52,6 +51,275 @@ removeConst (T) (T value) {
     }
 }
 
+// pw_node_info
+//   id
+//   state
+//   params
+//   n_params
+//
+// params  
+// spa_param_info
+//   id            // spa_param_type
+//   flags
+//   user
+//   seq
+//
+// spa_pod
+//   size
+//   type          // spa_pod_type
+struct
+Pod2 {
+    spa_pod _this;
+    alias _this this;
+
+    string
+    as_string () {
+        if (spa_pod_is_bool (&_this)) {
+            bool bool_value;
+            spa_pod_get_bool (&_this, &bool_value); 
+            return bool_value.to!string;
+        }
+        if (spa_pod_is_int (&_this)) {
+            int int_value;
+            spa_pod_get_int (&_this, &int_value); 
+            return int_value.to!string;
+        }
+        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_PropInfo)) {
+            string s = "[\n";
+            foreach (spa_pod_prop* prop; object_foreach) {
+                s ~= "  " ~ prop.key.to!string ~ ": "~ ((cast (Pod2*) &prop.value).as_string) ~ ",\n";
+            }
+            s ~= "]\n";
+            return s;
+            //return "?SPA_TYPE_OBJECT_PropInfo";
+        }
+        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_Format)) {
+            return "?SPA_TYPE_OBJECT_Format";
+        }
+        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamBuffers)) {
+            return "?SPA_TYPE_OBJECT_ParamBuffers";
+        }
+        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamMeta)) {
+            return "?SPA_TYPE_OBJECT_ParamMeta";
+        }
+        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamIO)) {
+            return "?SPA_TYPE_OBJECT_ParamIO";
+        }
+        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamProfile)) {
+            return "?SPA_TYPE_OBJECT_ParamProfile";
+        }
+        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamPortConfig)) {
+            return "?SPA_TYPE_OBJECT_ParamPortConfig";
+        }
+        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamPortConfig)) {
+            return "?SPA_TYPE_OBJECT_ParamPortConfig";
+        }
+        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamRoute)) {
+            return "?SPA_TYPE_OBJECT_ParamRoute";
+        }
+        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_Profiler)) {
+            return "?SPA_TYPE_OBJECT_Profiler";
+        }
+        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamLatency)) {
+            return "?SPA_TYPE_OBJECT_ParamLatency";
+        }
+        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamProcessLatency)) {
+            return "?SPA_TYPE_OBJECT_ParamProcessLatency";
+        }
+        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamTag)) {
+            return "?SPA_TYPE_OBJECT_ParamTag";
+        }
+        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_PeerParam)) {
+            return "?SPA_TYPE_OBJECT_PeerParam";
+        }
+        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamDict)) {
+            return "?SPA_TYPE_OBJECT_ParamDict";
+        }
+
+        switch (type) with (spa_pod_type) {
+            case Bool   : return (cast (spa_pod_bool)   _this).value.to!string;
+            case Id     : return (cast (spa_pod_id)     _this).value.to!string;
+            case Int    : return (cast (spa_pod_int)    _this).value.to!string;
+            case Long   : return (cast (spa_pod_long)   _this).value.to!string;
+            case Float  : return (cast (spa_pod_float)  _this).value.to!string;
+            case Double : return (cast (spa_pod_double) _this).value.to!string;
+            case String : return fromStringz (cast (char*) SPA_POD_BODY (&_this)).to!string;
+            case Choice : 
+                // n_vals
+                // choice
+                uint32_t n_vals;
+                uint32_t choice;
+                spa_pod* child;
+                child = spa_pod_get_values (&_this, &n_vals, &choice);
+                return (cast (Pod2*) child).as_string;
+
+            case Struct : 
+                string s;
+                s ~= "[";
+                foreach (pod; Pod_struct_foreach (&_this)) {
+                    if (s.length > 1) s ~= ", ";
+                    s ~= pod.as_string;
+                }
+                s ~= "]";
+                return s;
+
+            case Array : 
+                string s;
+                s ~= "[";
+                foreach (pod; Pod_array_foreach (&_this)) {
+                    if (s.length > 1) s ~= ", ";
+                    s ~= pod.as_string;
+                }
+                s ~= "]";
+                return s;
+
+            case Object    : 
+                string s;
+                s ~= "[\n    ";
+
+                auto obj = cast (spa_pod_object*) &_this;
+
+                switch (obj.body.id) with (spa_param_type) {
+                    case SPA_PARAM_Format:
+                        // SPA_PARAM_Format => SPA_TYPE_OBJECT_Format => spa_media_type
+                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_Format) (obj)) {
+                            if (s.length > 7) s ~= ",\n    ";
+                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
+                        }
+                        break;
+                    case SPA_PARAM_PropInfo:
+                        // SPA_PARAM_PropInfo => SPA_TYPE_OBJECT_PropInfo => spa_prop_info[]
+                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_PropInfo) (obj)) {
+                            if (s.length > 7) s ~= ",\n    ";
+                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
+                        }
+                        break;
+
+                    case SPA_PARAM_Props:
+                        // SPA_PARAM_Props => SPA_TYPE_OBJECT_Props => spa_prop[]
+                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_Props) (obj)) {
+                            if (s.length > 7) s ~= ",\n    ";
+                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
+                        }
+                        break;
+
+                    case SPA_PARAM_IO:
+                        // SPA_PARAM_IO => SPA_TYPE_OBJECT_ParamIO => spa_param_io[]
+                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_ParamIO) (obj)) {
+                            if (s.length > 7) s ~= ",\n    ";
+                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
+                        }
+                        break;
+
+                    case SPA_PARAM_Tag:
+                        break;
+
+                    default:
+                }
+
+                s ~= "]";
+                return s;
+
+            default:
+        }
+        return "?";
+    }
+
+    auto
+    object_foreach () {
+        return Object_range (cast (spa_pod_object*) &_this);
+    }
+
+    spa_pod_prop*
+    find_prop (uint32_t key) {
+        assert (spa_pod_is_object (&_this));
+        if (spa_pod_is_object (&_this))
+        foreach (spa_pod_prop* prop; object_foreach)
+            if (prop.key == key)
+                return prop;
+        return null;
+    }
+
+    struct
+    Object_range {  // SPA_POD_OBJECT_FOREACH
+        alias  OBJ   = spa_pod_object;       // pod, body, prop[]
+        alias  BODY  = spa_pod_object_body;  // type, id,  prop[]
+        alias  FRONT = spa_pod_prop;         // key, flag, value
+        OBJ*   obj;
+        BODY*  body;
+        FRONT* front;
+        bool   empty ()    { return !spa_pod_prop_is_inside (body, obj.pod.size, front); }
+        void   popFront () { front = spa_pod_prop_next (front); }
+
+        this (OBJ* obj) {
+            this.obj   = obj;
+            this.body  = &obj.body;
+            this.front = spa_pod_prop_first (body);
+        }
+    }
+}
+
+enum
+spa_pod_type {
+    None      = SPA_TYPE_None,
+    Bool      = SPA_TYPE_Bool,
+    Id        = SPA_TYPE_Id,
+    //
+    Int       = SPA_TYPE_Int,
+    Long      = SPA_TYPE_Long,
+    Float     = SPA_TYPE_Float,
+    Double    = SPA_TYPE_Double,
+    // 
+    String    = SPA_TYPE_String,
+    Bytes     = SPA_TYPE_Bytes,
+    Rectangle = SPA_TYPE_Rectangle,
+    Fraction  = SPA_TYPE_Fraction,
+    Bitmap    = SPA_TYPE_Bitmap,
+    //
+    Array     = SPA_TYPE_Array,
+    Struct    = SPA_TYPE_Struct,
+    Object    = SPA_TYPE_Object,
+    Sequence  = SPA_TYPE_Sequence,
+    //
+    Pointer   = SPA_TYPE_Pointer,
+    Fd        = SPA_TYPE_Fd,
+    Choice    = SPA_TYPE_Choice,
+    Pod       = SPA_TYPE_Pod,
+}
+
+struct
+Spa_list (CONTAINER=spa_list, string member="link") {
+    spa_list _this;     // head // next: Struct_param* with spa_list member
+    alias _this this;    //         prev: Struct_param* with spa_list member
+
+    static assert (__traits (hasMember, CONTAINER, member), "expect field '"~member~"` in type '"~CONTAINER.stringof~"'");
+    @disable this ();
+
+    auto
+    for_each_safe () {
+        return Range!(CONTAINER,member) (&_this);
+    }
+
+    struct
+    Range (CONTAINER, string member) {
+        spa_list*  head;
+        CONTAINER* front;
+        spa_list*  tmp;
+        bool       empty ()    { return  tmp is head; }
+        void       popFront () { 
+            tmp   = __traits (getMember, front, member).next; 
+            front = cast (CONTAINER*) ((cast (void*) tmp) - mixin ("CONTAINER."~member~".offsetof")); 
+        }
+
+        this (spa_list* head) {
+            this.head  = head;
+            this.tmp   = head.next; 
+            this.front = cast (CONTAINER*) ((cast (void*) tmp) - mixin ("CONTAINER."~member~".offsetof")); 
+        }
+    }
+}
+
+
 auto
 spa_dict_for_each (DICT) (DICT dict) {
     auto  items = removeConst (dict.items);
@@ -88,7 +356,7 @@ spa_list_for_each_safe_next (POS,TMP,CURR,HEAD,string member) {
     HEAD  head;
     alias pos = front;
     bool empty () {
-        (tmp) = spa_list_next!member (pos);
+        (tmp) = spa_list_next!(pos,member);
         return spa_list_is_end!member (pos, head);
     }
     void popFront () {
@@ -96,26 +364,17 @@ spa_list_for_each_safe_next (POS,TMP,CURR,HEAD,string member) {
     }
 
     this (POS pos,TMP tmp, CURR curr, HEAD head) {
-        this.front = spa_list_first!(typeof (*(pos)), member) (curr);
+        this.front = spa_list_first!(head, typeof (*(pos)), member);
         this.tmp   = tmp;
         this.head  = head;
     }
 }
 
-auto
-spa_list_first (TYPE, string member, HEAD) (HEAD head) {
-    return SPA_CONTAINER_OF!(TYPE, member) ((head).next);
-}
 
 //template
 //spa_list_next (alias pos, string member) {
 //    enum spa_list_next = _spa_list_next!member (pos);
 //}
-
-auto
-spa_list_next (string member, POS) (POS pos) {
-    return SPA_CONTAINER_OF!(typeof(*(pos)), member) (mixin ("(pos)."~member~".next"));
-}
 
 //auto
 //spa_list_append (LIST,ITEM) (LIST list, ITEM item) {
@@ -123,7 +382,7 @@ spa_list_next (string member, POS) (POS pos) {
 //}
 
 auto
-SPA_CONTAINER_OF (TYPE, string member, P) (P p) {
+SPA_CONTAINER_OF (alias p, TYPE, string member) () {
     return (cast (TYPE*) (cast (uintptr_t) (p) - mixin ("TYPE."~member~".offsetof")));
 }
 
