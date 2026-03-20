@@ -74,75 +74,30 @@ Pod {
 
     string
     as_string () {
-        if (spa_pod_is_bool (&_this)) {
-            bool bool_value;
-            spa_pod_get_bool (&_this, &bool_value); 
-            return bool_value.to!string;
-        }
-        if (spa_pod_is_int (&_this)) {
-            int int_value;
-            spa_pod_get_int (&_this, &int_value); 
-            return int_value.to!string;
-        }
-        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_PropInfo)) {
-            string s = "[\n";
-            foreach (spa_pod_prop* prop; object_foreach) {
-                s ~= "  " ~ prop.key.to!string ~ ": "~ ((cast (Pod*) &prop.value).as_string) ~ ",\n";
-            }
-            s ~= "]\n";
-            return s;
-            //return "?SPA_TYPE_OBJECT_PropInfo";
-        }
-        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_Format)) {
-            return "?SPA_TYPE_OBJECT_Format";
-        }
-        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamBuffers)) {
-            return "?SPA_TYPE_OBJECT_ParamBuffers";
-        }
-        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamMeta)) {
-            return "?SPA_TYPE_OBJECT_ParamMeta";
-        }
-        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamIO)) {
-            return "?SPA_TYPE_OBJECT_ParamIO";
-        }
-        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamProfile)) {
-            return "?SPA_TYPE_OBJECT_ParamProfile";
-        }
-        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamPortConfig)) {
-            return "?SPA_TYPE_OBJECT_ParamPortConfig";
-        }
-        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamPortConfig)) {
-            return "?SPA_TYPE_OBJECT_ParamPortConfig";
-        }
-        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamRoute)) {
-            return "?SPA_TYPE_OBJECT_ParamRoute";
-        }
-        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_Profiler)) {
-            return "?SPA_TYPE_OBJECT_Profiler";
-        }
-        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamLatency)) {
-            return "?SPA_TYPE_OBJECT_ParamLatency";
-        }
-        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamProcessLatency)) {
-            return "?SPA_TYPE_OBJECT_ParamProcessLatency";
-        }
-        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamTag)) {
-            return "?SPA_TYPE_OBJECT_ParamTag";
-        }
-        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_PeerParam)) {
-            return "?SPA_TYPE_OBJECT_PeerParam";
-        }
-        if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_ParamDict)) {
-            return "?SPA_TYPE_OBJECT_ParamDict";
-        }
+        mixin (Pod_as_string!"bool");
+        mixin (Pod_as_string!"int");
+        mixin (Pod_as_string!"long");
+        mixin (Pod_as_string!"float");
+        mixin (Pod_as_string!"double");
+
+        mixin (Object_as_string!SPA_TYPE_OBJECT_PropInfo);
+        mixin (Object_as_string!SPA_TYPE_OBJECT_Props);
+        mixin (Object_as_string!SPA_TYPE_OBJECT_Format);
+        mixin (Object_as_string!SPA_TYPE_OBJECT_ParamBuffers);
+        mixin (Object_as_string!SPA_TYPE_OBJECT_ParamMeta);
+        mixin (Object_as_string!SPA_TYPE_OBJECT_ParamIO);
+        mixin (Object_as_string!SPA_TYPE_OBJECT_ParamProfile);
+        mixin (Object_as_string!SPA_TYPE_OBJECT_ParamPortConfig);
+        mixin (Object_as_string!SPA_TYPE_OBJECT_ParamRoute);
+        mixin (Object_as_string!SPA_TYPE_OBJECT_Profiler);
+        mixin (Object_as_string!SPA_TYPE_OBJECT_ParamLatency);
+        mixin (Object_as_string!SPA_TYPE_OBJECT_ParamProcessLatency);
+        mixin (Object_as_string!SPA_TYPE_OBJECT_ParamTag);
+        mixin (Object_as_string!SPA_TYPE_OBJECT_PeerParam);
+        mixin (Object_as_string!SPA_TYPE_OBJECT_ParamDict);
 
         switch (type) with (spa_pod_type) {
-            case Bool   : return (cast (spa_pod_bool)   _this).value.to!string;
             case Id     : return (cast (spa_pod_id)     _this).value.to!string;
-            case Int    : return (cast (spa_pod_int)    _this).value.to!string;
-            case Long   : return (cast (spa_pod_long)   _this).value.to!string;
-            case Float  : return (cast (spa_pod_float)  _this).value.to!string;
-            case Double : return (cast (spa_pod_double) _this).value.to!string;
             case String : return fromStringz (cast (char*) SPA_POD_BODY (&_this)).to!string;
             case Choice : 
                 // n_vals
@@ -279,6 +234,36 @@ Pod {
             this.front = cast (FRONT*) ((cast (void*) &pod.body) + spa_pod_array_body.sizeof);
         }
     }
+}
+
+template
+Object_as_string (uint32_t SPA_TYPE_OBJECT_) {  // SPA_TYPE_OBJECT_PropInfo
+    enum Object_as_string = format!"
+        if (spa_pod_is_object_type (&_this, %d))
+            return _Object_as_string (&this, %d);
+    " 
+    (SPA_TYPE_OBJECT_, SPA_TYPE_OBJECT_);
+}
+auto
+_Object_as_string (Pod* pod, uint32_t SPA_TYPE_OBJECT_) {  // SPA_TYPE_OBJECT_PropInfo
+    string s = "[\n";
+    foreach (spa_pod_prop* prop; pod.object_foreach) {
+        s ~= "  " ~ prop.key.to!string ~ ": "~ ((cast (Pod*) &prop.value).as_string) ~ ",\n";
+    }
+    s ~= "]\n";
+    return s;
+}
+
+template
+Pod_as_string (string type) {
+    enum Pod_as_string = format!"
+        if (spa_pod_is_%s (&_this)) {
+            %s _value;
+            spa_pod_get_%s (&_this, &_value); 
+            return _value.to!string;
+        }
+    "
+    (type, type, type);
 }
 
 enum
