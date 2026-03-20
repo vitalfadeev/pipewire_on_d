@@ -34,7 +34,7 @@ int main (int argc, char** argv) {
 
             foreach (p; lst.for_each_safe) {
                 if (p.param !is null)
-                    writeln ("OK ", (cast (Pod2*) p.param).as_string);
+                    writeln ("OK ", (cast (Pod*) p.param).as_string);
             }
 
             // info: params_info

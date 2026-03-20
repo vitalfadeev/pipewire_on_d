@@ -68,7 +68,7 @@ removeConst (T) (T value) {
 //   size
 //   type          // spa_pod_type
 struct
-Pod2 {
+Pod {
     spa_pod _this;
     alias _this this;
 
@@ -87,7 +87,7 @@ Pod2 {
         if (spa_pod_is_object_type (&_this, SPA_TYPE_OBJECT_PropInfo)) {
             string s = "[\n";
             foreach (spa_pod_prop* prop; object_foreach) {
-                s ~= "  " ~ prop.key.to!string ~ ": "~ ((cast (Pod2*) &prop.value).as_string) ~ ",\n";
+                s ~= "  " ~ prop.key.to!string ~ ": "~ ((cast (Pod*) &prop.value).as_string) ~ ",\n";
             }
             s ~= "]\n";
             return s;
@@ -151,14 +151,14 @@ Pod2 {
                 uint32_t choice;
                 spa_pod* child;
                 child = spa_pod_get_values (&_this, &n_vals, &choice);
-                return (cast (Pod2*) child).as_string;
+                return (cast (.Pod*) child).as_string;
 
             case Struct : 
                 string s;
                 s ~= "[";
-                foreach (pod; Pod_struct_foreach (&_this)) {
+                foreach (spa_pod* pod; (cast (.Pod*) &_this).struct_foreach) {
                     if (s.length > 1) s ~= ", ";
-                    s ~= pod.as_string;
+                    s ~= (cast (.Pod*) pod).as_string;
                 }
                 s ~= "]";
                 return s;
@@ -166,57 +166,10 @@ Pod2 {
             case Array : 
                 string s;
                 s ~= "[";
-                foreach (pod; Pod_array_foreach (&_this)) {
+                foreach (spa_pod* pod; (cast (.Pod*) &_this).array_foreach) {
                     if (s.length > 1) s ~= ", ";
-                    s ~= pod.as_string;
+                    s ~= (cast (.Pod*) pod).as_string;
                 }
-                s ~= "]";
-                return s;
-
-            case Object    : 
-                string s;
-                s ~= "[\n    ";
-
-                auto obj = cast (spa_pod_object*) &_this;
-
-                switch (obj.body.id) with (spa_param_type) {
-                    case SPA_PARAM_Format:
-                        // SPA_PARAM_Format => SPA_TYPE_OBJECT_Format => spa_media_type
-                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_Format) (obj)) {
-                            if (s.length > 7) s ~= ",\n    ";
-                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
-                        }
-                        break;
-                    case SPA_PARAM_PropInfo:
-                        // SPA_PARAM_PropInfo => SPA_TYPE_OBJECT_PropInfo => spa_prop_info[]
-                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_PropInfo) (obj)) {
-                            if (s.length > 7) s ~= ",\n    ";
-                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
-                        }
-                        break;
-
-                    case SPA_PARAM_Props:
-                        // SPA_PARAM_Props => SPA_TYPE_OBJECT_Props => spa_prop[]
-                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_Props) (obj)) {
-                            if (s.length > 7) s ~= ",\n    ";
-                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
-                        }
-                        break;
-
-                    case SPA_PARAM_IO:
-                        // SPA_PARAM_IO => SPA_TYPE_OBJECT_ParamIO => spa_param_io[]
-                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_ParamIO) (obj)) {
-                            if (s.length > 7) s ~= ",\n    ";
-                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
-                        }
-                        break;
-
-                    case SPA_PARAM_Tag:
-                        break;
-
-                    default:
-                }
-
                 s ~= "]";
                 return s;
 
@@ -230,6 +183,16 @@ Pod2 {
         return Object_range (cast (spa_pod_object*) &_this);
     }
 
+    auto
+    struct_foreach () {
+        return Struct_range (cast (spa_pod_struct*) &_this);
+    }
+
+    auto
+    array_foreach () {
+        return Array_range (cast (spa_pod_array*) &_this);
+    }
+
     spa_pod_prop*
     find_prop (uint32_t key) {
         assert (spa_pod_is_object (&_this));
@@ -240,8 +203,14 @@ Pod2 {
         return null;
     }
 
+    // SPA_POD_OBJECT_FOREACH
+    // SPA_POD_OBJECT_BODY_FOREACH (&(obj)->body, SPA_POD_BODY_SIZE(obj), iter)
+    // SPA_POD_OBJECT_BODY_FOREACH (body, size, iter)
+    // for ((iter) = spa_pod_prop_first(body);
+    //      spa_pod_prop_is_inside(body, size, iter);
+    //      (iter) = spa_pod_prop_next(iter))
     struct
-    Object_range {  // SPA_POD_OBJECT_FOREACH
+    Object_range {  
         alias  OBJ   = spa_pod_object;       // pod, body, prop[]
         alias  BODY  = spa_pod_object_body;  // type, id,  prop[]
         alias  FRONT = spa_pod_prop;         // key, flag, value
@@ -251,10 +220,63 @@ Pod2 {
         bool   empty ()    { return !spa_pod_prop_is_inside (body, obj.pod.size, front); }
         void   popFront () { front = spa_pod_prop_next (front); }
 
+        @disable this ();
+
         this (OBJ* obj) {
             this.obj   = obj;
             this.body  = &obj.body;
             this.front = spa_pod_prop_first (body);
+        }
+    }
+
+    // SPA_POD_STRUCT_FOREACH (classes, iter)  // struct spa_pod *iter;
+    // SPA_POD_STRUCT_FOREACH (pod, o)         // struct spa_pod *o;
+    // SPA_POD_STRUCT_FOREACH (pod, o)         // struct spa_pod *o;
+    // 
+    // SPA_POD_STRUCT_FOREACH (obj, iter)
+    // SPA_POD_FOREACH (SPA_POD_BODY(obj), SPA_POD_BODY_SIZE(obj), iter)
+    // SPA_POD_FOREACH (pod, size, iter)
+    //   for ((iter) = (pod);
+    //     spa_pod_is_inside(pod, size, iter);
+    //     (iter) = (__typeof__(iter))spa_pod_next(iter))
+    struct
+    Struct_range {
+        alias  POD   = spa_pod_struct;  // spa_pod pod, ... spa_pod[]
+        alias  FRONT = spa_pod;
+        POD*   pod;
+        FRONT* front;
+        bool   empty ()    { return !spa_pod_is_inside (pod, pod.pod.size, front); }
+        void   popFront () { front = cast (FRONT*) spa_pod_next (front); }
+
+        @disable this ();
+
+        this (spa_pod_struct* pod) {
+            this.pod   = pod;
+            this.front = cast (FRONT*) pod;
+        }
+    }
+
+    // SPA_POD_ARRAY_FOREACH
+    // SPA_POD_ARRAY_FOREACH (obj, iter)
+    // SPA_POD_ARRAY_BODY_FOREACH (&(obj)->body, SPA_POD_BODY_SIZE(obj), iter)
+    // SPA_POD_ARRAY_BODY_FOREACH (body, _size, iter)
+    // for ((iter) = (__typeof__(iter))SPA_PTROFF((body), sizeof(struct spa_pod_array_body), void);
+    //      (body)->child.size > 0 && spa_ptrinside(body, _size, iter, (body)->child.size, NULL);
+    //      (iter) = (__typeof__(iter))SPA_PTROFF((iter), (body)->child.size, void))
+    struct
+    Array_range {
+        alias  POD   = spa_pod_array;  // spa_pod pod, spa_pod_array_body body = spa_pod child, ...spa_pod[]
+        alias  FRONT = spa_pod;
+        POD*   pod;
+        FRONT* front;
+        bool   empty ()    { return !(pod.body.child.size > 0 && spa_ptrinside (&pod.body, pod.pod.size, front, pod.body.child.size, null)); }
+        void   popFront () { front = cast (FRONT*) ((cast (void*) front) + pod.body.child.size); }
+
+        @disable this ();
+
+        this (POD* pod) {
+            this.pod = pod;
+            this.front = cast (FRONT*) ((cast (void*) &pod.body) + spa_pod_array_body.sizeof);
         }
     }
 }
@@ -423,73 +445,73 @@ spa_list_is_end (string member, POS, HEAD) (POS pos, HEAD head) {
 //}
 
 
-enum 
-spa_type {
-    /* Basic types */
-    SPA_TYPE_START = 0x00000,
-    SPA_TYPE_None,
-    SPA_TYPE_Bool,
-    SPA_TYPE_Id,
-    SPA_TYPE_Int,
-    SPA_TYPE_Long,
-    SPA_TYPE_Float,
-    SPA_TYPE_Double,
-    SPA_TYPE_String,
-    SPA_TYPE_Bytes,
-    SPA_TYPE_Rectangle,
-    SPA_TYPE_Fraction,
-    SPA_TYPE_Bitmap,
-    SPA_TYPE_Array,
-    SPA_TYPE_Struct,
-    SPA_TYPE_Object,
-    SPA_TYPE_Sequence,
-    SPA_TYPE_Pointer,
-    SPA_TYPE_Fd,
-    SPA_TYPE_Choice,
-    SPA_TYPE_Pod,
-    _SPA_TYPE_LAST,             /**< not part of ABI */
+//enum 
+//spa_type {
+//    /* Basic types */
+//    SPA_TYPE_START = 0x00000,
+//    SPA_TYPE_None,
+//    SPA_TYPE_Bool,
+//    SPA_TYPE_Id,
+//    SPA_TYPE_Int,
+//    SPA_TYPE_Long,
+//    SPA_TYPE_Float,
+//    SPA_TYPE_Double,
+//    SPA_TYPE_String,
+//    SPA_TYPE_Bytes,
+//    SPA_TYPE_Rectangle,
+//    SPA_TYPE_Fraction,
+//    SPA_TYPE_Bitmap,
+//    SPA_TYPE_Array,
+//    SPA_TYPE_Struct,
+//    SPA_TYPE_Object,
+//    SPA_TYPE_Sequence,
+//    SPA_TYPE_Pointer,
+//    SPA_TYPE_Fd,
+//    SPA_TYPE_Choice,
+//    SPA_TYPE_Pod,
+//    _SPA_TYPE_LAST,             /**< not part of ABI */
 
-    /* Pointers */
-    SPA_TYPE_POINTER_START = 0x10000,
-    SPA_TYPE_POINTER_Buffer,
-    SPA_TYPE_POINTER_Meta,
-    SPA_TYPE_POINTER_Dict,
-    _SPA_TYPE_POINTER_LAST,         /**< not part of ABI */
+//    /* Pointers */
+//    SPA_TYPE_POINTER_START = 0x10000,
+//    SPA_TYPE_POINTER_Buffer,
+//    SPA_TYPE_POINTER_Meta,
+//    SPA_TYPE_POINTER_Dict,
+//    _SPA_TYPE_POINTER_LAST,         /**< not part of ABI */
 
-    /* Events */
-    SPA_TYPE_EVENT_START = 0x20000,
-    SPA_TYPE_EVENT_Device,
-    SPA_TYPE_EVENT_Node,
-    _SPA_TYPE_EVENT_LAST,           /**< not part of ABI */
+//    /* Events */
+//    SPA_TYPE_EVENT_START = 0x20000,
+//    SPA_TYPE_EVENT_Device,
+//    SPA_TYPE_EVENT_Node,
+//    _SPA_TYPE_EVENT_LAST,           /**< not part of ABI */
 
-    /* Commands */
-    SPA_TYPE_COMMAND_START = 0x30000,
-    SPA_TYPE_COMMAND_Device,
-    SPA_TYPE_COMMAND_Node,
-    _SPA_TYPE_COMMAND_LAST,         /**< not part of ABI */
+//    /* Commands */
+//    SPA_TYPE_COMMAND_START = 0x30000,
+//    SPA_TYPE_COMMAND_Device,
+//    SPA_TYPE_COMMAND_Node,
+//    _SPA_TYPE_COMMAND_LAST,         /**< not part of ABI */
 
-    /* Objects */
-    SPA_TYPE_OBJECT_START = 0x40000,
-    SPA_TYPE_OBJECT_PropInfo,
-    SPA_TYPE_OBJECT_Props,
-    SPA_TYPE_OBJECT_Format,
-    SPA_TYPE_OBJECT_ParamBuffers,
-    SPA_TYPE_OBJECT_ParamMeta,
-    SPA_TYPE_OBJECT_ParamIO,
-    SPA_TYPE_OBJECT_ParamProfile,
-    SPA_TYPE_OBJECT_ParamPortConfig,
-    SPA_TYPE_OBJECT_ParamRoute,
-    SPA_TYPE_OBJECT_Profiler,
-    SPA_TYPE_OBJECT_ParamLatency,
-    SPA_TYPE_OBJECT_ParamProcessLatency,
-    SPA_TYPE_OBJECT_ParamTag,
-    _SPA_TYPE_OBJECT_LAST,          /**< not part of ABI */
+//    /* Objects */
+//    SPA_TYPE_OBJECT_START = 0x40000,
+//    SPA_TYPE_OBJECT_PropInfo,
+//    SPA_TYPE_OBJECT_Props,
+//    SPA_TYPE_OBJECT_Format,
+//    SPA_TYPE_OBJECT_ParamBuffers,
+//    SPA_TYPE_OBJECT_ParamMeta,
+//    SPA_TYPE_OBJECT_ParamIO,
+//    SPA_TYPE_OBJECT_ParamProfile,
+//    SPA_TYPE_OBJECT_ParamPortConfig,
+//    SPA_TYPE_OBJECT_ParamRoute,
+//    SPA_TYPE_OBJECT_Profiler,
+//    SPA_TYPE_OBJECT_ParamLatency,
+//    SPA_TYPE_OBJECT_ParamProcessLatency,
+//    SPA_TYPE_OBJECT_ParamTag,
+//    _SPA_TYPE_OBJECT_LAST,          /**< not part of ABI */
 
-    /* vendor extensions */
-    SPA_TYPE_VENDOR_PipeWire    = 0x02000000,
+//    /* vendor extensions */
+//    SPA_TYPE_VENDOR_PipeWire    = 0x02000000,
 
-    SPA_TYPE_VENDOR_Other       = 0x7f000000,
-};
+//    SPA_TYPE_VENDOR_Other       = 0x7f000000,
+//};
 
 enum SPA_POD_PROP_FLAG_HINT_DICT = (1u<<2);
 
@@ -530,266 +552,266 @@ Node_info_params_foreach {
     }
 }
 //   props
-struct
-Pod_object_foreach (alias TObject) { // SPA_POD_OBJECT_FOREACH
-    alias Key        = _Object_key_type!TObject;
-    alias Prop       = _Prop!Key;
-    alias Pod_object = _Pod_object!Prop;
-    Prop front;
-    bool empty ()    { return !obj.is_inside (front); }
-    void popFront () { front = front.next (); }
-    Pod_object obj;
+//struct
+//Pod_object_foreach (alias TObject) { // SPA_POD_OBJECT_FOREACH
+//    alias Key        = _Object_key_type!TObject;
+//    alias Prop       = _Prop!Key;
+//    alias Pod_object = _Pod_object!Prop;
+//    Prop front;
+//    bool empty ()    { return !obj.is_inside (front); }
+//    void popFront () { front = front.next (); }
+//    Pod_object obj;
 
-    @disable this();
+//    @disable this();
 
-    this (spa_pod_object* obj) {  // pod*
-        this.obj   = Pod_object (obj);
-        this.front = this.obj.prop_first ();
-    }
+//    this (spa_pod_object* obj) {  // pod*
+//        this.obj   = Pod_object (obj);
+//        this.front = this.obj.prop_first ();
+//    }
 
-    this (spa_pod* pod) {
-        this (cast (spa_pod_object*) pod);
-    }
-}
+//    this (spa_pod* pod) {
+//        this (cast (spa_pod_object*) pod);
+//    }
+//}
 
-struct
-Pod_struct_foreach {  // SPA_POD_STRUCT_FOREACH
-    Pod  front;
-    bool empty ()    { return !pod_struct.is_inside (front); }
-    void popFront () { front = front.next (); }
-    Pod  pod_struct;  // size,type, ...[]
+//struct
+//Pod_struct_foreach {  // SPA_POD_STRUCT_FOREACH
+//    Pod  front;
+//    bool empty ()    { return !pod_struct.is_inside (front); }
+//    void popFront () { front = front.next (); }
+//    Pod  pod_struct;  // size,type, ...[]
 
-    @disable this();
+//    @disable this();
 
-    this (spa_pod* pod) {
-        this.pod_struct = Pod (pod);
-        this.front      = Pod (cast (spa_pod*) SPA_POD_BODY (pod));
-    }
-}
+//    this (spa_pod* pod) {
+//        this.pod_struct = Pod (pod);
+//        this.front      = Pod (cast (spa_pod*) SPA_POD_BODY (pod));
+//    }
+//}
 
-struct
-Pod_array_foreach {  // SPA_POD_ARRAY_FOREACH, SPA_POD_ARRAY_BODY_FOREACH
-    Pod  front;
-    bool empty ()    { return !(pod_array.size > 0 && pod_array.is_inside (front)); }
-    void popFront () { front = front.next (); }
-    Pod  pod_array;  // size,type, ...[]
+//struct
+//Pod_array_foreach {  // SPA_POD_ARRAY_FOREACH, SPA_POD_ARRAY_BODY_FOREACH
+//    Pod  front;
+//    bool empty ()    { return !(pod_array.size > 0 && pod_array.is_inside (front)); }
+//    void popFront () { front = front.next (); }
+//    Pod  pod_array;  // size,type, ...[]
 
-    @disable this();
+//    @disable this();
 
-    this (spa_pod* pod) {
-        this.pod_array = Pod (pod);
-        this.front     = Pod (cast (spa_pod*) SPA_POD_BODY (pod));
-    }
-}
+//    this (spa_pod* pod) {
+//        this.pod_array = Pod (pod);
+//        this.front     = Pod (cast (spa_pod*) SPA_POD_BODY (pod));
+//    }
+//}
 
-struct
-Pod {
-    spa_pod* _this;
-    alias _this this;
+//struct
+//__Pod {
+//    spa_pod* _this;
+//    alias _this this;
 
-    Pod
-    next () {
-        return Pod (cast (spa_pod*) spa_pod_next (_this));
-    }
+//    Pod
+//    next () {
+//        return Pod (cast (spa_pod*) spa_pod_next (_this));
+//    }
 
-    bool
-    is_inside (Pod pod) {
-        return spa_pod_is_inside (_this, _this.size, pod._this);
-    }
+//    bool
+//    is_inside (Pod pod) {
+//        return spa_pod_is_inside (_this, _this.size, pod._this);
+//    }
 
-    bool
-    find (spa_prop key) {  // SPA_PROP_volume, SPA_PROP_channelVolumes, SPA_PROP_softVolumes
-        return false;
-    }
+//    bool
+//    find (spa_prop key) {  // SPA_PROP_volume, SPA_PROP_channelVolumes, SPA_PROP_softVolumes
+//        return false;
+//    }
 
-    bool
-    find_any (spa_prop[] key) {  // SPA_PROP_volume, SPA_PROP_channelVolumes, SPA_PROP_softVolumes
-        return false;
-    }
+//    bool
+//    find_any (spa_prop[] key) {  // SPA_PROP_volume, SPA_PROP_channelVolumes, SPA_PROP_softVolumes
+//        return false;
+//    }
 
-    //Pod
-    //copy () {
-    //    auto _p = cast (spa_pod*) malloc (SPA_POD_SIZE (_this));
-    //    memcpy (_p, _this, SPA_POD_SIZE (_this));
-    //    return Pod (_p);
-    //}
+//    //Pod
+//    //copy () {
+//    //    auto _p = cast (spa_pod*) malloc (SPA_POD_SIZE (_this));
+//    //    memcpy (_p, _this, SPA_POD_SIZE (_this));
+//    //    return Pod (_p);
+//    //}
 
-    string
-    as_string () {
-        switch (_this.type) with (spa_type) {
-            case SPA_TYPE_Bool   : return (cast (spa_pod_bool*)   _this).value.to!string;
-            case SPA_TYPE_Id     : return (cast (spa_pod_id*)     _this).value.to!string;
-            case SPA_TYPE_Int    : return (cast (spa_pod_int *)   _this).value.to!string;
-            case SPA_TYPE_Long   : return (cast (spa_pod_long *)  _this).value.to!string;
-            case SPA_TYPE_Float  : return (cast (spa_pod_float*)  _this).value.to!string;
-            case SPA_TYPE_Double : return (cast (spa_pod_double*) _this).value.to!string;
-            case SPA_TYPE_String : return fromStringz (cast (char*) SPA_POD_BODY (cast (spa_pod*) _this)).to!string;
-            case SPA_TYPE_Choice : 
-                // n_vals
-                // choice
-                uint32_t n_vals;
-                uint32_t choice;
-                spa_pod* child;
-                child = spa_pod_get_values (_this, &n_vals, &choice);
-                return Pod (child).as_string;
+//    string
+//    as_string () {
+//        switch (_this.type) with (spa_type) {
+//            case SPA_TYPE_Bool   : return (cast (spa_pod_bool*)   _this).value.to!string;
+//            case SPA_TYPE_Id     : return (cast (spa_pod_id*)     _this).value.to!string;
+//            case SPA_TYPE_Int    : return (cast (spa_pod_int *)   _this).value.to!string;
+//            case SPA_TYPE_Long   : return (cast (spa_pod_long *)  _this).value.to!string;
+//            case SPA_TYPE_Float  : return (cast (spa_pod_float*)  _this).value.to!string;
+//            case SPA_TYPE_Double : return (cast (spa_pod_double*) _this).value.to!string;
+//            case SPA_TYPE_String : return fromStringz (cast (char*) SPA_POD_BODY (cast (spa_pod*) _this)).to!string;
+//            case SPA_TYPE_Choice : 
+//                // n_vals
+//                // choice
+//                uint32_t n_vals;
+//                uint32_t choice;
+//                spa_pod* child;
+//                child = spa_pod_get_values (_this, &n_vals, &choice);
+//                return Pod (child).as_string;
 
-            case SPA_TYPE_Struct : 
-                string s;
-                s ~= "[";
-                foreach (pod; Pod_struct_foreach (_this)) {
-                    if (s.length > 1) s ~= ", ";
-                    s ~= pod.as_string;
-                }
-                s ~= "]";
-                return s;
+//            case SPA_TYPE_Struct : 
+//                string s;
+//                s ~= "[";
+//                foreach (pod; Pod_struct_foreach (_this)) {
+//                    if (s.length > 1) s ~= ", ";
+//                    s ~= pod.as_string;
+//                }
+//                s ~= "]";
+//                return s;
 
-            case SPA_TYPE_Array : 
-                string s;
-                s ~= "[";
-                foreach (pod; Pod_array_foreach (_this)) {
-                    if (s.length > 1) s ~= ", ";
-                    s ~= pod.as_string;
-                }
-                s ~= "]";
-                return s;
+//            case SPA_TYPE_Array : 
+//                string s;
+//                s ~= "[";
+//                foreach (pod; Pod_array_foreach (_this)) {
+//                    if (s.length > 1) s ~= ", ";
+//                    s ~= pod.as_string;
+//                }
+//                s ~= "]";
+//                return s;
 
                 
-            case SPA_TYPE_Object    : 
-                string s;
-                s ~= "[\n    ";
+//            case SPA_TYPE_Object    : 
+//                string s;
+//                s ~= "[\n    ";
 
-                auto obj = cast (spa_pod_object*) _this;
+//                auto obj = cast (spa_pod_object*) _this;
 
-                switch (obj.body.id) with (spa_param_type) {
-                    case SPA_PARAM_Format:
-                        // SPA_PARAM_Format => SPA_TYPE_OBJECT_Format => spa_media_type
-                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_Format) (obj)) {
-                            if (s.length > 7) s ~= ",\n    ";
-                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
-                        }
-                        break;
-                    case SPA_PARAM_PropInfo:
-                        // SPA_PARAM_PropInfo => SPA_TYPE_OBJECT_PropInfo => spa_prop_info[]
-                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_PropInfo) (obj)) {
-                            if (s.length > 7) s ~= ",\n    ";
-                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
-                        }
-                        break;
+//                switch (obj.body.id) with (spa_param_type) {
+//                    case SPA_PARAM_Format:
+//                        // SPA_PARAM_Format => SPA_TYPE_OBJECT_Format => spa_media_type
+//                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_Format) (obj)) {
+//                            if (s.length > 7) s ~= ",\n    ";
+//                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
+//                        }
+//                        break;
+//                    case SPA_PARAM_PropInfo:
+//                        // SPA_PARAM_PropInfo => SPA_TYPE_OBJECT_PropInfo => spa_prop_info[]
+//                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_PropInfo) (obj)) {
+//                            if (s.length > 7) s ~= ",\n    ";
+//                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
+//                        }
+//                        break;
 
-                    case SPA_PARAM_Props:
-                        // SPA_PARAM_Props => SPA_TYPE_OBJECT_Props => spa_prop[]
-                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_Props) (obj)) {
-                            if (s.length > 7) s ~= ",\n    ";
-                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
-                        }
-                        break;
+//                    case SPA_PARAM_Props:
+//                        // SPA_PARAM_Props => SPA_TYPE_OBJECT_Props => spa_prop[]
+//                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_Props) (obj)) {
+//                            if (s.length > 7) s ~= ",\n    ";
+//                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
+//                        }
+//                        break;
 
-                    case SPA_PARAM_IO:
-                        // SPA_PARAM_IO => SPA_TYPE_OBJECT_ParamIO => spa_param_io[]
-                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_ParamIO) (obj)) {
-                            if (s.length > 7) s ~= ",\n    ";
-                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
-                        }
-                        break;
+//                    case SPA_PARAM_IO:
+//                        // SPA_PARAM_IO => SPA_TYPE_OBJECT_ParamIO => spa_param_io[]
+//                        foreach (prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_ParamIO) (obj)) {
+//                            if (s.length > 7) s ~= ",\n    ";
+//                            s ~= format!"%27s: %s" (prop.key, prop.value.as_string); 
+//                        }
+//                        break;
 
-                    case SPA_PARAM_Tag:
-                        break;
+//                    case SPA_PARAM_Tag:
+//                        break;
 
-                    default:
-                }
+//                    default:
+//                }
 
-                s ~= "]";
-                return s;
+//                s ~= "]";
+//                return s;
 
-            //case SPA_TYPE_OBJECT_Format   : return "?";
-            default                       :
-                return "? ("~(cast (spa_type) _this.type).to!string~")";
-        }
-    }
+//            //case SPA_TYPE_OBJECT_Format   : return "?";
+//            default                       :
+//                return "? ("~(cast (spa_type) _this.type).to!string~")";
+//        }
+//    }
 
-    void
-    parse () {
-        switch (_this.type) with (spa_type) {
-            case SPA_TYPE_OBJECT_PropInfo : _parse_PropInfo (); break;
-            case SPA_TYPE_OBJECT_Props    : break;
-            case SPA_TYPE_OBJECT_Format   : break;
-            default                       :
-        }
-    }
+//    void
+//    parse () {
+//        switch (_this.type) with (spa_type) {
+//            case SPA_TYPE_OBJECT_PropInfo : _parse_PropInfo (); break;
+//            case SPA_TYPE_OBJECT_Props    : break;
+//            case SPA_TYPE_OBJECT_Format   : break;
+//            default                       :
+//        }
+//    }
 
-    void
-    _parse_PropInfo () {
-        uint32_t iid;
+//    void
+//    _parse_PropInfo () {
+//        uint32_t iid;
 
-        foreach (/*Prop*/ prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_PropInfo) (_this)) {
-            writefln ("  %s: %s", prop.key, prop.value_type);
-            switch (prop.key) with (spa_prop_info) {
-                case SPA_PROP_INFO_id : break;
-                default:
-            }
-        }
+//        foreach (/*Prop*/ prop; Pod_object_foreach!(spa_type.SPA_TYPE_OBJECT_PropInfo) (_this)) {
+//            writefln ("  %s: %s", prop.key, prop.value_type);
+//            switch (prop.key) with (spa_prop_info) {
+//                case SPA_PROP_INFO_id : break;
+//                default:
+//            }
+//        }
 
-        spa_pod* info = cast (spa_pod*) SPA_POD_BODY (_this);
-    }
+//        spa_pod* info = cast (spa_pod*) SPA_POD_BODY (_this);
+//    }
 
-    void
-    dump (string prefix="") {
-        switch (_this.type) with (spa_type) {
-            case SPA_TYPE_Bool   : writefln ("%s%d", prefix, (cast (spa_pod_bool*)   _this).value); break;
-            case SPA_TYPE_Id     : writefln ("%s%d", prefix, (cast (spa_pod_id*)     _this).value); break;
-            case SPA_TYPE_Int    : writefln ("%s%d", prefix, (cast (spa_pod_int *)   _this).value); break;
-            case SPA_TYPE_Long   : writefln ("%s%d", prefix, (cast (spa_pod_long *)  _this).value); break;
-            case SPA_TYPE_Float  : writefln ("%s%f", prefix, (cast (spa_pod_float*)  _this).value); break;
-            case SPA_TYPE_Double : writefln ("%s%f", prefix, (cast (spa_pod_double*) _this).value); break;
-            case SPA_TYPE_String : writefln ("%s%s", prefix, fromStringz (cast (char*) SPA_POD_BODY (cast (spa_pod*) _this)).to!string); break;
-            case SPA_TYPE_Array  : 
-                writefln ("%s%s", prefix, cast (spa_type) (cast (spa_pod_array*)  _this).body.child.type); 
-                // foreach array of pod.body.child.type
-                break;
-            case SPA_TYPE_Object : 
-                //foreach (Prop prop; Pod_object_foreach (_this)) {
-                //    writefln ("%s%s: %s", prefix, prop.key, prop.value_type);
-                //    Pod (prop.value).dump (prefix~" ");
-                //}
-                break;
-            case SPA_TYPE_Struct : 
-                foreach (Pod _param; Pod_struct_foreach (_this)) {
-                    _param.dump (prefix~" ");
-                }
-                break;
-            default              : writefln ("%s?", prefix);
-        }
-    }
-}
+//    void
+//    dump (string prefix="") {
+//        switch (_this.type) with (spa_type) {
+//            case SPA_TYPE_Bool   : writefln ("%s%d", prefix, (cast (spa_pod_bool*)   _this).value); break;
+//            case SPA_TYPE_Id     : writefln ("%s%d", prefix, (cast (spa_pod_id*)     _this).value); break;
+//            case SPA_TYPE_Int    : writefln ("%s%d", prefix, (cast (spa_pod_int *)   _this).value); break;
+//            case SPA_TYPE_Long   : writefln ("%s%d", prefix, (cast (spa_pod_long *)  _this).value); break;
+//            case SPA_TYPE_Float  : writefln ("%s%f", prefix, (cast (spa_pod_float*)  _this).value); break;
+//            case SPA_TYPE_Double : writefln ("%s%f", prefix, (cast (spa_pod_double*) _this).value); break;
+//            case SPA_TYPE_String : writefln ("%s%s", prefix, fromStringz (cast (char*) SPA_POD_BODY (cast (spa_pod*) _this)).to!string); break;
+//            case SPA_TYPE_Array  : 
+//                writefln ("%s%s", prefix, cast (spa_type) (cast (spa_pod_array*)  _this).body.child.type); 
+//                // foreach array of pod.body.child.type
+//                break;
+//            case SPA_TYPE_Object : 
+//                //foreach (Prop prop; Pod_object_foreach (_this)) {
+//                //    writefln ("%s%s: %s", prefix, prop.key, prop.value_type);
+//                //    Pod (prop.value).dump (prefix~" ");
+//                //}
+//                break;
+//            case SPA_TYPE_Struct : 
+//                foreach (Pod _param; Pod_struct_foreach (_this)) {
+//                    _param.dump (prefix~" ");
+//                }
+//                break;
+//            default              : writefln ("%s?", prefix);
+//        }
+//    }
+//}
 
-struct
-_Pod_object (Prop) {
-    spa_pod_object* _this;
+//struct
+//_Pod_object (Prop) {
+//    spa_pod_object* _this;
 
-    Prop
-    prop_first () {
-        return Prop (spa_pod_prop_first (&_this.body));
-    }
+//    Prop
+//    prop_first () {
+//        return Prop (spa_pod_prop_first (&_this.body));
+//    }
 
-    bool
-    is_inside (Prop prop) {
-        return spa_pod_prop_is_inside (&_this.body, _this.pod.size, prop._this);
-    }
-}
+//    bool
+//    is_inside (Prop prop) {
+//        return spa_pod_prop_is_inside (&_this.body, _this.pod.size, prop._this);
+//    }
+//}
 
-struct
-_Prop (Key) {
-    spa_pod_prop* _this;
+//struct
+//_Prop (Key) {
+//    spa_pod_prop* _this;
 
-    Key      key        () { return cast (Key)       _this.key; }
-    Pod      value      () { return Pod (cast (spa_pod*) &_this.value); }
-    spa_type value_type () { return cast (spa_type)  _this.value.type; }
+//    Key      key        () { return cast (Key)       _this.key; }
+//    Pod      value      () { return Pod (cast (spa_pod*) &_this.value); }
+//    spa_type value_type () { return cast (spa_type)  _this.value.type; }
 
-    _Prop!Key
-    next () {
-        return _Prop!Key (spa_pod_prop_next (_this));
-    }
-}
+//    _Prop!Key
+//    next () {
+//        return _Prop!Key (spa_pod_prop_next (_this));
+//    }
+//}
 
 struct
 Param {

@@ -208,5 +208,5 @@ dump_pod_object (spa_pod* param) {
     //
     // SPA_TYPE_*
     //   SPA_TYPE_OBJECT_*
-    Pod (param).dump ("  ");
+    //Pod (param).dump ("  ");
 }
