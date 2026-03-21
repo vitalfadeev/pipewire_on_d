@@ -300,13 +300,15 @@ Spa_list_for_each_safe (T) (spa_list* list) {
     return (cast (Spa_list!T*) list).for_each_safe;
 }
 
+auto
+Spa_list (string member="link") (spa_list* list) {
+    return cast (_Spa_list!member) list;
+}
+
 struct
-Spa_list {
-    enum string member="link";
+_Spa_list (string member) {
     spa_list* _this;     // head // next: Struct_param* with spa_list member
     alias _this this;    //         prev: Struct_param* with spa_list member
-
-    //@disable this ();
 
     import std.traits : ParameterTypeTuple;  // introspection template
     import std.traits : PointerTarget;
@@ -502,3 +504,4 @@ auto
 SPA_FLAG_MASK (FIELD, MASK, FLAG) (FIELD field, MASK mask, FLAG flag) {
     return (((field) & (mask)) == (flag));
 }
+
