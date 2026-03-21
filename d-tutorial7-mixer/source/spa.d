@@ -49,11 +49,11 @@ Pod {
 
     string
     as_string () {
-        mixin (Pod_as_string!"bool");
-        mixin (Pod_as_string!"int");
-        mixin (Pod_as_string!"long");
-        mixin (Pod_as_string!"float");
-        mixin (Pod_as_string!"double");
+        mixin (_Pod_as_string!"bool");
+        mixin (_Pod_as_string!"int");
+        mixin (_Pod_as_string!"long");
+        mixin (_Pod_as_string!"float");
+        mixin (_Pod_as_string!"double");
 
         mixin (Object_as_string!SPA_TYPE_OBJECT_PropInfo);
         mixin (Object_as_string!SPA_TYPE_OBJECT_Props);
@@ -81,14 +81,14 @@ Pod {
                 uint32_t choice;
                 spa_pod* child;
                 child = spa_pod_get_values (&_this, &n_vals, &choice);
-                return (cast (.Pod*) child).as_string;
+                return Pod_as_string (child);
 
             case Struct : 
                 string s;
                 s ~= "[";
-                foreach (spa_pod* pod; (cast (.Pod*) &_this).struct_foreach) {
+                foreach (spa_pod* pod; Pod_struct_foreach (&_this) ) {
                     if (s.length > 1) s ~= ", ";
-                    s ~= (cast (.Pod*) pod).as_string;
+                    s ~= Pod_as_string (pod);
                 }
                 s ~= "]";
                 return s;
@@ -96,9 +96,9 @@ Pod {
             case Array : 
                 string s;
                 s ~= "[";
-                foreach (spa_pod* pod; (cast (.Pod*) &_this).array_foreach) {
+                foreach (spa_pod* pod; Pod_array_foreach (&_this)) {
                     if (s.length > 1) s ~= ", ";
-                    s ~= (cast (.Pod*) pod).as_string;
+                    s ~= Pod_as_string (pod);
                 }
                 s ~= "]";
                 return s;
@@ -212,6 +212,26 @@ Pod {
     }
 }
 
+auto
+Pod_object_foreach (spa_pod* pod) {
+    return (cast (Pod*) pod).object_foreach;
+}
+
+auto
+Pod_struct_foreach (spa_pod* pod) {
+    return (cast (Pod*) pod).struct_foreach;
+}
+
+auto
+Pod_array_foreach (spa_pod* pod) {
+    return (cast (Pod*) pod).array_foreach;
+}
+
+string 
+Pod_as_string (spa_pod* pod) {
+    return (cast (Pod*) pod).as_string;
+}
+
 template
 Object_as_string (uint32_t SPA_TYPE_OBJECT_) {  // SPA_TYPE_OBJECT_PropInfo
     enum Object_as_string = format!"
@@ -224,15 +244,15 @@ auto
 _Object_as_string (Pod* pod, uint32_t SPA_TYPE_OBJECT_) {  // SPA_TYPE_OBJECT_PropInfo
     string s = "[\n";
     foreach (spa_pod_prop* prop; pod.object_foreach) {
-        s ~= "  " ~ prop.key.to!string ~ ": "~ ((cast (Pod*) &prop.value).as_string) ~ ",\n";
+        s ~= "  " ~ prop.key.to!string ~ ": "~ (Pod_as_string (&prop.value)) ~ ",\n";
     }
     s ~= "]\n";
     return s;
 }
 
 template
-Pod_as_string (string type) {
-    enum Pod_as_string = format!"
+_Pod_as_string (string type) {
+    enum _Pod_as_string = format!"
         if (spa_pod_is_%s (&_this)) {
             %s _value;
             spa_pod_get_%s (&_this, &_value); 
@@ -269,37 +289,71 @@ spa_pod_type {
     Choice    = SPA_TYPE_Choice,
     Pod       = SPA_TYPE_Pod,
 }
+auto
+Spa_list_for_each (T) (spa_list* list) {
+    return (cast (Spa_list!T*) list).for_each_safe;
+}
+
+auto
+Spa_list_for_each_safe (T) (spa_list* list) {
+    //return (cast (Spa_list!T*) list).for_each_safe;
+    return (cast (Spa_list!T*) list).for_each_safe;
+}
 
 struct
-Spa_list (CONTAINER=spa_list, string member="link") {
-    spa_list _this;     // head // next: Struct_param* with spa_list member
+Spa_list {
+    enum string member="link";
+    spa_list* _this;     // head // next: Struct_param* with spa_list member
     alias _this this;    //         prev: Struct_param* with spa_list member
 
-    static assert (__traits (hasMember, CONTAINER, member), "expect field '"~member~"` in type '"~CONTAINER.stringof~"'");
-    @disable this ();
+    //@disable this ();
 
-    auto
-    for_each_safe () {
-        return Range!(CONTAINER,member) (&_this);
-    }
+    import std.traits : ParameterTypeTuple;  // introspection template
+    import std.traits : PointerTarget;
 
-    struct
-    Range (CONTAINER, string member) {
-        spa_list*  head;
-        CONTAINER* front;
-        spa_list*  tmp;
-        bool       empty ()    { return  tmp is head; }
-        void       popFront () { 
-            tmp   = __traits (getMember, front, member).next; 
-            front = cast (CONTAINER*) ((cast (void*) tmp) - mixin ("CONTAINER."~member~".offsetof")); 
+    int 
+    opApply (Dg) (scope Dg dg)
+        if (ParameterTypeTuple!Dg.length == 1) // foreach with 1 parameters
+    {
+        alias CONTAINER_PTR = ParameterTypeTuple!Dg[0];  // 1st foreach-parameter
+        alias CONTAINER     = PointerTarget!CONTAINER_PTR;
+        static assert (__traits (hasMember, CONTAINER, member), "expect field '"~member~"` in type '"~CONTAINER.stringof~"'");
+
+        spa_list* tmp = this.next;
+        for (CONTAINER_PTR front = cast (CONTAINER_PTR) ((cast (void*) tmp) - mixin ("CONTAINER."~member~".offsetof"));
+            tmp !is _this;
+            tmp   = __traits (getMember, front, member).next,
+            front = cast (CONTAINER_PTR) ((cast (void*) tmp) - mixin ("CONTAINER."~member~".offsetof")))
+        {
+            if (auto res = dg (front))
+                return 1;
         }
 
-        this (spa_list* head) {
-            this.head  = head;
-            this.tmp   = head.next; 
-            this.front = cast (CONTAINER*) ((cast (void*) tmp) - mixin ("CONTAINER."~member~".offsetof")); 
-        }
+        return 0;
     }
+
+    //auto
+    //for_each_safe () {
+    //    return Range!(CONTAINER,member) (_this);
+    //}
+
+    //struct
+    //Range (CONTAINER, string member) {
+    //    spa_list*  head;
+    //    CONTAINER* front;
+    //    spa_list*  tmp;
+    //    bool       empty ()    { return  tmp is head; }
+    //    void       popFront () { 
+    //        tmp   = __traits (getMember, front, member).next; 
+    //        front = cast (CONTAINER*) ((cast (void*) tmp) - mixin ("CONTAINER."~member~".offsetof")); 
+    //    }
+
+    //    this (spa_list* head)  {
+    //        this.head  = head;
+    //        this.tmp   = head.next; 
+    //        this.front = cast (CONTAINER*) ((cast (void*) tmp) - mixin ("CONTAINER."~member~".offsetof")); 
+    //    }
+    //}
 }
 
 
@@ -437,4 +491,14 @@ X {
 }
 static foreach (e; EnumMembers!X) {
     pragma (msg, e.stringof, "\t", cast (uint) e);
+}
+
+auto
+SPA_FLAG_IS_SET (FIELD, FLAG) (FIELD field, FLAG flag) {
+    return SPA_FLAG_MASK (field, flag, flag);
+}
+
+auto
+SPA_FLAG_MASK (FIELD, MASK, FLAG) (FIELD field, MASK mask, FLAG flag) {
+    return (((field) & (mask)) == (flag));
 }

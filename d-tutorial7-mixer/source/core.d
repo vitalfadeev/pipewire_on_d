@@ -35,38 +35,20 @@ Core {
     }
 
     extern (C)
-    static void 
-    on_coredone (void* _this, uint32_t id, int seq) {
-        with (cast (Core) _this) {
-            //if (id == PW_ID_CORE) {
-            //    pendings.remove (seq);
+    void 
+    on_coredone (/*void* _this,*/ uint32_t id, int seq) {
+        if (id == PW_ID_CORE) {
+            if (sync_seq != seq)
+                return;
 
-            //    if (pendings.all_done)
-            //        pw_main_loop_quit (context.loop);
-            //}
-
-            //Data* d = data;
-            //Object_* o;
-
-            if (id == PW_ID_CORE) {
-                if (sync_seq != seq)
-                    return;
-
-                //pw_log_debug ("sync end %u/%u", d.sync_seq, seq);
-
-                //spa_list_for_each (o, &d.object_list, link)
-                //    object_update_params (&o.param_list, &o.pending_list, o.n_params, o.params);
-
-                //dump_objects(d);
-                if (!monitor)
-                    pw_main_loop_quit (context.loop);
-            }
+            if (!monitor)
+                pw_main_loop_quit (context.loop);
         }
     }
 
     static pw_core_events core_events = {
         PW_VERSION_CORE_EVENTS,
-        done: &on_coredone,
+        done: cast (typeof (pw_core_events.done)) &on_coredone,
     };
 
     void 

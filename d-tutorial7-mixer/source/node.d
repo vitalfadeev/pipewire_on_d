@@ -166,11 +166,10 @@ Node : Pw_object {
     uint32_t 
     clear_params (spa_list* param_list, uint32_t id) {
         uint32_t count = 0;
-        alias Struct_param_list = Spa_list!(Struct_param,"link");
-        auto _list = cast (Struct_param_list*) (param_list);
 
         //foreach (Struct_param* p; spa_list_for_each_safe!(p_, t_, param_list, "link")) {
-        foreach (p; _list.for_each_safe) {
+        //foreach (Struct_param* p; Spa_list_for_each_safe!Struct_param (param_list) ) {
+        foreach (Struct_param* p; Spa_list (param_list)) {
             if (id == SPA_ID_INVALID || p.id == id) {
                 spa_list_remove (&p.link);
                 free (p);
