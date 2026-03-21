@@ -218,6 +218,11 @@ Pod_object_foreach (spa_pod* pod) {
 }
 
 auto
+Pod_object_foreach (const (spa_pod)* pod) {
+    return (cast (Pod*) pod).object_foreach;
+}
+
+auto
 Pod_struct_foreach (spa_pod* pod) {
     return (cast (Pod*) pod).struct_foreach;
 }
@@ -505,3 +510,48 @@ SPA_FLAG_MASK (FIELD, MASK, FLAG) (FIELD field, MASK mask, FLAG flag) {
     return (((field) & (mask)) == (flag));
 }
 
+// SPA_FLAG_UPDATE(field,flag,val)  
+//   ((val) ? SPA_FLAG_SET((field),(flag)) : SPA_FLAG_CLEAR((field),(flag)))
+auto
+SPA_FLAG_UPDATE (FIELD,FLAG,VAL) (FIELD field, FLAG flag, VAL val) {
+    ((val) ? 
+        spa.SPA_FLAG_SET ((field),(flag)) : 
+        spa.SPA_FLAG_CLEAR ((field),(flag)));
+}
+
+auto
+SPA_FLAG_CLEAR (FIELD, FLAG) (FIELD field, FLAG flag) {
+    //SPA_STATIC_ASSERT(
+    //    __builtin_constant_p(flag) ? 
+    //          (__typeof__(flag))(__typeof__(field))(__typeof__(flag))(flag) == (flag) : 
+    //          sizeof(field) >= sizeof(flag),            
+    //            "truncation problem when masking " #field   
+    //            " with ~" #flag);               
+
+    (field) &= ~cast (FIELD) (flag);
+}
+
+auto
+SPA_CLAMP (V,LOW,HIGH) (V v, LOW low, HIGH high) {
+    V       _v = (v);             
+    LOW   _low = (low);           
+    HIGH _high = (high);        
+
+    return SPA_MIN (SPA_MAX (_v, _low), _high);
+}
+
+auto
+SPA_MIN (A,B) (A a, B b) {
+    A _min_a = (a);         
+    B _min_b = (b);         
+    return SPA_LIKELY (_min_a <= _min_b) ? _min_a : _min_b; 
+}
+
+auto
+SPA_MAX (A,B) (A a, B b) {
+    A _max_a = (a);
+    B _max_b = (b);
+    return SPA_LIKELY (_max_a >= _max_b) ? _max_a : _max_b;
+}
+
+//SPA_LIKELY(x) (__builtin_expect(!!(x),1))

@@ -7,6 +7,9 @@ import std.conv : to;
 import std.string : fromStringz,toStringz;
 import spa;
 import klass;
+import set_volume_mute : Volume, NODE_FLAG_SINK, NODE_FLAG_SOURCE;
+import set_volume_mute : NODE_FLAG_DEVICE_VOLUME, NODE_FLAG_DEVICE_MUTE;
+import set_volume_mute : volume_from_linear;
 
 class
 Node : Pw_object {
@@ -23,6 +26,14 @@ Node : Pw_object {
         info  : cast (typeof (pw_node_events.info))  &info_event,
         param : cast (typeof (pw_node_events.param)) &param_event
     };
+    //
+    uint32_t flags;
+    uint32_t device_id;
+    uint32_t profile_device_id;
+    int      priority;
+    float    volume;
+    bool     mute;
+    Volume   channel_volume;
 
     this (Core core, uint32_t id, uint32_t permissions, const char*  type, uint32_t version_, const spa_dict* props)  {
         super (core, id, permissions, type, version_, props);
@@ -39,8 +50,9 @@ Node : Pw_object {
     extern (C)
     void 
     info_event (/*void* _node, */const pw_node_info* info) {
-        uint32_t i, changed = 0;
-        int      res;
+        uint32_t      i, changed = 0;
+        int           res;
+        const (char) *str;
 
         printf ("node\n");
         printf ("node_info: id: %u\n", info.id);
@@ -50,38 +62,72 @@ Node : Pw_object {
         if (this.info is null)
             return;
 
-        params   = cast (spa_param_info*) (info.params);
-        n_params = info.n_params;
+        //params   = cast (spa_param_info*) (info.params);
+        //n_params = info.n_params;
 
-        if (info.change_mask & PW_NODE_CHANGE_MASK_STATE)
-            changed++;
+        //if (info.change_mask & PW_NODE_CHANGE_MASK_STATE)
+        //    changed++;
 
-        if (info.change_mask & PW_NODE_CHANGE_MASK_PROPS)
-            changed++;
+        //if (info.change_mask & PW_NODE_CHANGE_MASK_PROPS)
+        //    changed++;
+
+        //if (info.change_mask & PW_NODE_CHANGE_MASK_PARAMS) {
+        //    for (i = 0; i < info.n_params; i++) {
+        //        uint32_t id = info.params[i].id;
+
+        //        if (info.params[i].user == 0)
+        //            continue;
+        //        (cast (pw_node_info*) info).params[i].user = 0;
+
+        //        changed++;
+        //        add_param (&pending_list, 0, id, null);
+        //        if (!(info.params[i].flags & SPA_PARAM_INFO_READ))
+        //            continue;
+
+        //        res = pw_node_enum_params (_this, 
+        //            ++(cast (pw_node_info*) info).params[i].seq, id, 0, -1, null);
+        //        if (SPA_RESULT_IS_ASYNC (res))
+        //            (cast (pw_node_info*) info).params[i].seq = res;
+        //    }
+        //}
+
+        if (info.change_mask & PW_NODE_CHANGE_MASK_PROPS && info.props) {
+            if ((str = spa_dict_lookup (cast (spa_dict*) info.props, "card.profile.device")) !is null)
+                profile_device_id = atoi (str);
+            else
+                profile_device_id = SPA_ID_INVALID;
+
+            if ((str = spa_dict_lookup (cast (spa_dict*) info.props, PW_KEY_DEVICE_ID.ptr)) !is null)
+                device_id = atoi (str);
+            else
+                device_id = SPA_ID_INVALID;
+
+            if ((str = spa_dict_lookup (cast (spa_dict*) info.props, PW_KEY_PRIORITY_SESSION.ptr)) !is null)
+                priority = atoi (str);
+            if ((str = spa_dict_lookup (cast (spa_dict*) info.props, PW_KEY_MEDIA_CLASS.ptr)) !is null) {
+                if (spa_streq (str, "Audio/Sink"))
+                    flags |= NODE_FLAG_SINK;
+                else if (spa_streq (str, "Audio/Source"))
+                    flags |= NODE_FLAG_SOURCE;
+            }
+        }
 
         if (info.change_mask & PW_NODE_CHANGE_MASK_PARAMS) {
             for (i = 0; i < info.n_params; i++) {
-                uint32_t id = info.params[i].id;
-
-                if (info.params[i].user == 0)
-                    continue;
-                (cast (pw_node_info*) info).params[i].user = 0;
-
-                changed++;
-                add_param (&pending_list, 0, id, null);
                 if (!(info.params[i].flags & SPA_PARAM_INFO_READ))
                     continue;
 
-                res = pw_node_enum_params (_this, 
-                    ++(cast (pw_node_info*) info).params[i].seq, id, 0, -1, null);
-                if (SPA_RESULT_IS_ASYNC (res))
-                    (cast (pw_node_info*) info).params[i].seq = res;
+                switch (info.params[i].id) {
+                    case SPA_PARAM_Props:
+                        pw_node_enum_params (cast (pw_node*) proxy, 0, info.params[i].id, 0, -1, null);
+                        break;
+                    default:
+                        break;
+                }
             }
         }
-        if (changed) {
-            this.changed += changed;
-            core.sync ();
-        }
+
+        core.sync ();
 
         //foreach (ref Param param; Node_info_params_foreach (_info.n_params, _info.params)) {
         //    auto id_name = param.id.to!string.toStringz;
@@ -114,9 +160,60 @@ Node : Pw_object {
         //printf ("node_param: id:%u\n", id);
         //writefln ("  %s", cast (spa_param_type) id);
 
-        add_param (&pending_list, seq, id, param);
+        switch (id) {
+        case SPA_PARAM_Props:
+            if (!spa.SPA_FLAG_IS_SET (flags, NODE_FLAG_DEVICE_VOLUME | NODE_FLAG_DEVICE_MUTE))
+                parse_props (param, false);
+            break;
+        default:
+            break;
+        }
+
+        //add_param (&pending_list, seq, id, param);
     }
 
+    void 
+    parse_props (const (spa_pod)* param, bool device) {
+        foreach (spa_pod_prop* prop; Pod_object_foreach (param)) {
+            switch (prop.key) {
+                case SPA_PROP_volume:
+                    if (spa_pod_get_float (&prop.value, &volume) < 0)
+                        continue;
+                    //pw_log_debug ("update node %d volume", id);
+                    spa.SPA_FLAG_UPDATE (flags, NODE_FLAG_DEVICE_VOLUME, device);
+                    break;
+
+                case SPA_PROP_mute:
+                    if (spa_pod_get_bool (&prop.value, &mute) < 0)
+                        continue;
+                    spa.SPA_FLAG_UPDATE (flags, NODE_FLAG_DEVICE_MUTE, device);
+                    //pw_log_debug ("update node %d mute", g.id);
+                    break;
+
+                case SPA_PROP_channelVolumes: {
+                    float[SPA_AUDIO_MAX_CHANNELS] volumes;
+                    uint32_t n_volumes, i;
+
+                    n_volumes = spa_pod_copy_array (&prop.value, SPA_TYPE_Float,
+                            volumes.ptr, SPA_AUDIO_MAX_CHANNELS);
+
+                    channel_volume.channels = n_volumes;
+                    for (i = 0; i < n_volumes; i++)
+                        channel_volume.values[i] =
+                            volume_from_linear (volumes[i], core.registry.volume_method);
+
+                    spa.SPA_FLAG_UPDATE (flags, NODE_FLAG_DEVICE_VOLUME, device);
+                    //pw_log_debug("update node %d channelVolumes", g.id);
+                    break;
+                }
+
+                default:
+                    break;
+            }
+        }
+    }
+
+    //
     void
     _enum_params (spa_param_type id) {
         //if (info.params[i].user == 0) continue;

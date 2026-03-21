@@ -52,6 +52,7 @@ class Pw_object : Pw_proxy {
     char*           type;
     uint32_t        version_;
     pw_properties*  props;   // from registry.global ()
+    const(char)* name () { return pw_properties_get (props, PW_KEY_NODE_NAME.ptr); }
 
     //const void*     klass_events;
     //Klass*         _klass;

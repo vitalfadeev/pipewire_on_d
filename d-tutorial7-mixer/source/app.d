@@ -34,6 +34,25 @@ int main (int argc, char** argv) {
                     writeln (p.id, ": ", (cast (Pod*) p.param).as_string);
             }
         }
+
+        // set volume
+        import set_volume_mute : set_volume_mute, Volume, NODE_FLAG_SOURCE, NODE_FLAG_SINK;
+        import node : Node;
+
+        char*  name = core.registry.default_source.ptr;
+        Volume volume;
+        int    mute;
+        Node   node;
+        Node   sink;
+        if (core.registry.default_source[0] == '\0')
+          node = core.registry.find_best_node (NODE_FLAG_SOURCE);
+        if (core.registry.default_sink[0] == '\0')
+          sink = core.registry.find_best_node (NODE_FLAG_SINK);
+        if (node !is null)
+          printf ("DEFAULT_SOURCE : %s\n", node.name);
+        if (sink !is null)
+          printf ("DEFAULT_SINK   : %s\n", sink.name);
+        //set_volume_mute (core.registry, name, &volume, &mute);
     }
 
     return 0;

@@ -2,13 +2,16 @@ import importc;
 import core_;
 import interfaces;
 import spa;
+import registry;
+import node;
+import device;
 
-enum DEFAULT_VOLUME_METHOD = "cubic";
 enum VOLUME_MIN            = (cast (uint32_t) 0U);
 enum VOLUME_MAX            = (cast (uint32_t) 0x10000U);
 
 
 struct Volume {
+    enum DEFAULT_VOLUME_METHOD = "cubic";
     uint32_t                     channels;
     long[SPA_AUDIO_MAX_CHANNELS] values;
 }
@@ -144,31 +147,35 @@ build_volume_mute (spa_pod_builder* b, Volume* volume, int* mute, int volume_met
 }
 
 static int 
-set_volume_mute (snd_ctl_pipewire_t* ctl, const char* name, Volume* volume, int* mute) {
-    global*          g;
-    global*          dg;
+set_volume_mute (Registry registry, const char* name, Volume* volume, int* mute) {
+    Node             node;
+    Device           device;
     uint32_t         id = SPA_ID_INVALID, device_id = SPA_ID_INVALID;
     char[1024]       buf;
     spa_pod_builder  b = SPA_POD_BUILDER_INIT (buf.ptr,buf.sizeof);
     spa_pod_frame[2] f;
     spa_pod          *param;
 
-    g = find_global (ctl, SPA_ID_INVALID, name, PW_TYPE_INTERFACE_Node);
-    if (g is null)
+    node = registry.find_node (SPA_ID_INVALID, name);
+    if (node is null)
         return -EINVAL;
 
-    if (spa.SPA_FLAG_IS_SET (g.node.flags, NODE_FLAG_DEVICE_VOLUME) &&
-        (dg = find_global (ctl, g.node.device_id, null, PW_TYPE_INTERFACE_Device)) != null) {
-        if (g.node.flags & NODE_FLAG_SINK)
-            id = dg.device.active_route_output;
+    if (spa.SPA_FLAG_IS_SET (node.flags, NODE_FLAG_DEVICE_VOLUME) 
+        && (device = registry.find_device (node.device_id, null)) !is null) 
+    {
+        if (node.flags & NODE_FLAG_SINK)
+            id = device.active_route_output;
         else 
-        if (g.node.flags & NODE_FLAG_SOURCE)
-            id = dg.device.active_route_input;
-        device_id = g.node.profile_device_id;
+        if (node.flags & NODE_FLAG_SOURCE)
+            id = device.active_route_input;
+        device_id = node.profile_device_id;
     }
     //pw_log_debug ("id %d device_id %d flags:%08x", id, device_id, g.node.flags);
-    if (id != SPA_ID_INVALID && device_id != SPA_ID_INVALID && dg != null) {
-        if (!spa.SPA_FLAG_IS_SET (dg.permissions, PW_PERM_W | PW_PERM_X))
+    if (id != SPA_ID_INVALID 
+        && device_id != SPA_ID_INVALID 
+        && device !is null) 
+    {
+        if (!spa.SPA_FLAG_IS_SET (device.permissions, PW_PERM_W | PW_PERM_X))
             return -EPERM;
 
         spa_pod_builder_push_object (&b, &f[0],
@@ -180,21 +187,21 @@ set_volume_mute (snd_ctl_pipewire_t* ctl, const char* name, Volume* volume, int*
             0);
 
         spa_pod_builder_prop (&b, SPA_PARAM_ROUTE_props, 0);
-        build_volume_mute (&b, volume, mute, ctl.volume_method);
+        build_volume_mute (&b, volume, mute, registry.volume_method);
         param = cast (spa_pod*) spa_pod_builder_pop (&b, &f[0]);
 
         //pw_log_debug ("set device %d mute/volume for node %d", dg.id, g.id);
-        pw_device_set_param (cast (pw_device*) dg.proxy,
+        pw_device_set_param (cast (pw_device*) device.proxy,
             SPA_PARAM_Route, 0, param);
     } 
     else {
-        if (!spa.SPA_FLAG_IS_SET (g.permissions, PW_PERM_W | PW_PERM_X))
+        if (!spa.SPA_FLAG_IS_SET (node.permissions, PW_PERM_W | PW_PERM_X))
             return -EPERM;
 
-        param = build_volume_mute (&b, volume, mute, ctl.volume_method);
+        param = build_volume_mute (&b, volume, mute, registry.volume_method);
 
         //pw_log_debug ("set node %d mute/volume", g.id);
-        pw_node_set_param (cast (pw_node*) g.proxy, SPA_PARAM_Props, 0, param);
+        pw_node_set_param (cast (pw_node*) node.proxy, SPA_PARAM_Props, 0, param);
     }
 
     return 0;
@@ -213,25 +220,25 @@ volume_to_linear (long vol, int method) {
     return v;
 }
 
-global*
-find_global (snd_ctl_pipewire_t* ctl, uint32_t id,
-        const char* name, const char* type)
-{
-    uint32_t name_id = name ? cast (uint32_t) atoi(name) : SPA_ID_INVALID;
-    char* str;
 
-    // spa_list_for_each (g, &ctl.globals, link) {
-    //foreach (global* g; Spa_list_for_each!global (&ctl.globals)) {
-    //foreach (global* g; cast (Spa_list!"link") ctl.globals) {
-    foreach (global* g; Spa_list (&ctl.globals)) {
-        if ((g.id == id || g.id == name_id) &&
-            (type == NULL || spa_streq(g.ginfo.type, type)))
-            return g;
-        if (name != NULL && name[0] != '\0' &&
-            (str = cast (char*) pw_properties_get (g.props, PW_KEY_NODE_NAME.ptr)) !is null &&
-            spa_streq(name, str))
-            return g;
+uint32_t 
+volume_from_linear (float vol, int method) {
+    if (vol <= 0.0f)
+        vol = 0.0f;
+
+    switch (method) {
+        case VOLUME_METHOD_CUBIC:
+            vol = cbrtf(vol);
+            break;
+        default:
     }
-    return null;
+
+    return 
+        cast (uint32_t)
+        spa.SPA_CLAMP (
+            cast (uint64_t) lroundf (vol * VOLUME_MAX),
+            VOLUME_MIN, 
+            VOLUME_MAX
+        );
 }
 

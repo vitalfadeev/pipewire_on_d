@@ -6,6 +6,7 @@
 // PipeWire
 #define SPA_API_IMPL __attribute__((unused))
 #include <pipewire/pipewire.h>
+#include <pipewire/extensions/metadata.h>
 
 // Spa
 #define SPA_API_IMPL __attribute__((unused))
